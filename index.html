@@ -1,4 +1,4 @@
-<!DOCTYPE html>테스터본
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -58,9 +58,16 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .stat-c{background:#0c1525;border:1px solid #182a40;border-radius:10px;padding:10px;text-align:center;}
 .stat-v{font-size:14px;font-weight:700;font-family:'Space Mono',monospace;}
 .stat-l{font-size:8px;color:#4a6080;margin-top:2px;}
-.month-scroll{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;margin-bottom:16px;}
-.month-scroll::-webkit-scrollbar{display:none;}
-.month-btn{flex-shrink:0;padding:6px 14px;border-radius:20px;border:1px solid #182a40;background:transparent;color:#4a6080;font-size:11px;font-weight:700;cursor:pointer;font-family:'Space Mono',monospace;}
+
+.month-scroll{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+.month-year-group{padding:8px 0;}
+.month-year-header{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;padding:6px 0;}
+.month-year-toggle{width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:12px;transition:transform .2s;flex-shrink:0;}
+.month-year-toggle.open{transform:rotate(180deg);}
+.month-year-label{font-size:12px;font-weight:700;color:#00e5ff;font-family:'Space Mono',monospace;}
+.month-buttons{display:flex;flex-wrap:wrap;gap:6px;max-height:0;overflow:hidden;transition:max-height .3s ease-out;}
+.month-buttons.open{max-height:200px;}
+.month-btn{padding:6px 14px;border-radius:20px;border:1px solid #182a40;background:transparent;color:#4a6080;font-size:11px;font-weight:700;cursor:pointer;font-family:'Space Mono',monospace;}
 .month-btn.active{background:rgba(0,229,255,.15);border-color:#00e5ff;color:#00e5ff;}
 .month-btn.all-btn{border-color:#a78bfa;color:#a78bfa;}
 .month-btn.all-btn.active{background:rgba(167,139,250,.2);}
@@ -136,6 +143,7 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
 .btn-restore{width:100%;background:transparent;border:1px solid rgba(251,191,36,.3);color:#fbbf24;font-size:11px;font-weight:700;padding:8px;border-radius:8px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;}
 .btn-clr{width:100%;background:transparent;border:1px solid rgba(251,100,100,.2);color:#fb7185;font-size:11px;padding:9px;border-radius:8px;cursor:pointer;margin-top:8px;font-family:'Noto Sans KR',sans-serif;}
 .empty-state{text-align:center;padding:40px 20px;color:#4a6080;font-size:12px;line-height:2;}
+
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(70px);font-size:12px;font-weight:700;padding:10px 22px;border-radius:20px;opacity:0;transition:.3s;z-index:999;color:#000;white-space:nowrap;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 .no-goal{font-size:11px;color:#4a6080;text-align:center;padding:12px;font-family:'Space Mono',monospace;}
@@ -168,14 +176,6 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
 .milestone-card-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
 .milestone-card-title{font-size:11px;font-weight:700;color:#e2e8f0;}
 .milestone-card-pct{font-size:10px;font-family:'Space Mono',monospace;color:#4a6080;}
-
-.month-btn {
-  transition: all 0.2s;
-}
-.month-btn:hover {
-  transform: translateY(-1px);
-}
-
 </style>
 </head>
 <body>
@@ -304,7 +304,7 @@ let goals = null;
 let charts = {};
 let qsParsed = null;
 let selectedMonth = 'all';
-let selectedYear = null;
+let yearGroups = {};
 
 document.getElementById('inp-date').value = new Date().toISOString().slice(0,10);
 
@@ -439,7 +439,6 @@ function persist(){try{localStorage.setItem(SKEY,JSON.stringify(records));}catch
 function loadData(){
   try{const r=localStorage.getItem(SKEY);if(r)records=JSON.parse(r);}catch(e){records=[];}
   try{const g=localStorage.getItem(GKEY);if(g)goals=JSON.parse(g);}catch(e){goals=null;}
-  // 데모 데이터 없음 — 첫 실행 시 빈 상태로 시작
 }
 
 function pctColor(pct, isFuture){
@@ -453,6 +452,7 @@ function pctColor(pct, isFuture){
   if(pct>=85)  return '#fbbf24';
   return '#fb7185';
 }
+
 function pctLabel(pct, isFuture){
   if(isFuture) return '';
   if(pct>=105) return '초과 달성 🚀';
@@ -586,83 +586,71 @@ function mkMonthItem(label,color,cur,goal,unit,pct){
 </div>`;
 }
 
-function getYearMonths(){
-  const map = {};
+function getMonths(){
+  return [...new Set(records.map(r=>r.date.slice(0,7)))].sort();
+}
 
-  records.forEach(r=>{
-    const [y,m] = r.date.split('-');
-    if(!map[y]) map[y] = new Set();
-    map[y].add(m);
+function buildYearGroups(){
+  yearGroups = {};
+  getMonths().forEach(ym=>{
+    const year = ym.slice(0,4);
+    if(!yearGroups[year]) yearGroups[year] = [];
+    yearGroups[year].push(ym);
   });
-
-  // 정렬 + 배열화
-  Object.keys(map).forEach(y=>{
-    map[y] = [...map[y]].sort();
-  });
-
-  return Object.keys(map)
-    .sort((a,b)=>b-a) // 최신년도 먼저
-    .reduce((acc,y)=>{
-      acc[y] = map[y];
-      return acc;
-    },{});
 }
 
 function renderMonthSelector(){
-  const scroll = document.getElementById('month-scroll');
-  scroll.innerHTML = '';
-
-  const data = getYearMonths();
-
-  // 전체 버튼
-  const allBtn = document.createElement('button');
-  allBtn.className = 'month-btn all-btn' + (selectedMonth==='all'?' active':'');
-  allBtn.textContent = '전체';
-  allBtn.onclick = ()=>{
-    selectedMonth='all';
-    selectedYear=null;
-    renderMonthSelector();
-    showSection('all');
-  };
+  const scroll=document.getElementById('month-scroll');
+  scroll.innerHTML='';
+  
+  const allBtn=document.createElement('button');
+  allBtn.className='month-btn all-btn'+(selectedMonth==='all'?' active':'');
+  allBtn.textContent='전체';
+  allBtn.onclick=()=>{selectedMonth='all';renderMonthSelector();showSection('all');};
   scroll.appendChild(allBtn);
-
-  // 년도 렌더링
-  Object.keys(data).forEach(year=>{
-    const isOpen = selectedYear === year;
-
-    // 년도 버튼
-    const yBtn = document.createElement('button');
-    yBtn.className = 'month-btn' + (isOpen?' active':'');
-    yBtn.textContent = `${year} ${isOpen?'▼':'▶'}`;
-
-    yBtn.onclick = ()=>{
-      selectedYear = isOpen ? null : year;
-      selectedMonth = 'all';
-      renderMonthSelector();
+  
+  buildYearGroups();
+  const sortedYears = Object.keys(yearGroups).sort().reverse();
+  
+  sortedYears.forEach(year=>{
+    const groupDiv = document.createElement('div');
+    groupDiv.className = 'month-year-group';
+    
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'month-year-header';
+    headerDiv.style.cursor = 'pointer';
+    
+    const toggle = document.createElement('div');
+    toggle.className = 'month-year-toggle open';
+    toggle.textContent = '▼';
+    
+    const label = document.createElement('div');
+    label.className = 'month-year-label';
+    label.textContent = year;
+    
+    headerDiv.appendChild(toggle);
+    headerDiv.appendChild(label);
+    
+    const buttonsDiv = document.createElement('div');
+    buttonsDiv.className = 'month-buttons open';
+    
+    yearGroups[year].forEach(ym=>{
+      const btn = document.createElement('button');
+      btn.className = 'month-btn'+(selectedMonth===ym?' active':'');
+      btn.textContent = ym.slice(5)+'월';
+      btn.onclick = ()=>{selectedMonth=ym;renderMonthSelector();showSection('month');renderMonthSection(ym);};
+      buttonsDiv.appendChild(btn);
+    });
+    
+    headerDiv.onclick = (e)=>{
+      if(e.target.closest('button')) return;
+      buttonsDiv.classList.toggle('open');
+      toggle.classList.toggle('open');
     };
-
-    scroll.appendChild(yBtn);
-
-    // 펼쳐진 상태면 월 버튼 생성
-    if(isOpen){
-      data[year].forEach(m=>{
-        const ym = `${year}-${m}`;
-        const mBtn = document.createElement('button');
-
-        mBtn.className = 'month-btn' + (selectedMonth===ym?' active':'');
-        mBtn.style.marginLeft = '6px';
-        mBtn.textContent = `${parseInt(m)}월`;
-
-        mBtn.onclick = ()=>{
-          selectedMonth = ym;
-          renderMonthSelector();
-          showSection('month');
-          renderMonthSection(ym);
-        };
-
-        scroll.appendChild(mBtn);
-      });
-    }
+    
+    groupDiv.appendChild(headerDiv);
+    groupDiv.appendChild(buttonsDiv);
+    scroll.appendChild(groupDiv);
   });
 }
 
@@ -782,7 +770,7 @@ function renderAll(){
 }
 
 function delRec(date){records=records.filter(r=>r.date!==date);persist();renderAll();}
-function clearAll(){if(!confirm('전체 삭제할까요?'))return;records=[];persist();renderAll();}
+function clearAll(){if(!confirm('전체 삭제할까요?'))return;records=[];goals=null;localStorage.removeItem(GKEY);persist();renderAll();}
 function exportData(){const json=JSON.stringify(records,null,2);navigator.clipboard.writeText(json).then(()=>toast('클립보드에 복사됐어요!')).catch(()=>{document.getElementById('paste-area').value=json;toast('아래 텍스트를 복사하세요');});}
 function importFile(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{doImport(JSON.parse(ev.target.result));}catch{toast('형식 오류',true);}};r.readAsText(f);}
 function importText(){const t=document.getElementById('paste-area').value.trim();if(!t){toast('텍스트를 붙여넣어 주세요',true);return;}try{doImport(JSON.parse(t));document.getElementById('paste-area').value='';}catch{toast('형식 오류',true);}}
@@ -806,7 +794,6 @@ function endOfMonth(date){
 function analyzeGoal(){
   if(!goals || !goals.discharge || records.length < 2) return '';
 
-  // GOAL:: 코드에 enlistDate/dischargeDate가 있으면 우선 사용, 없으면 기본값
   const enlistDate = new Date(goals.enlistDate || "2025-08-17");
   const dischargeDate = new Date(goals.dischargeDate || "2027-04-17");
 
@@ -843,16 +830,18 @@ function analyzeGoal(){
     const remainDays = Math.max(1, (goalDate - today) / (1000*60*60*24));
     const plusRemain = t.plusSh - last.plusSh;
     const kodexRemain = t.kodexSh - last.kodexSh;
+    const divRemain = t.div - lastDiv;
     const needPlus = plusRemain / remainDays;
     const needKodex = kodexRemain / remainDays;
+    const needDiv = divRemain / remainDays;
     const etaPlus = plusSpeed > 0 ? plusRemain / plusSpeed : Infinity;
     const etaKodex = kodexSpeed > 0 ? kodexRemain / kodexSpeed : Infinity;
-    const etaDiv = divSpeed > 0 ? (t.div - lastDiv) / divSpeed : Infinity;
+    const etaDiv = divSpeed > 0 ? divRemain / divSpeed : Infinity;
     const etaDays = Math.max(etaPlus, etaKodex, etaDiv);
     const etaDate = new Date();
     etaDate.setDate(etaDate.getDate() + Math.ceil(etaDays));
     const isOk = etaDate <= goalDate;
-    return { name:t.name, date:goalDate.toISOString().slice(0,10), ok:isOk, passed, needPlus, needKodex, curPlus:plusSpeed, curKodex:kodexSpeed };
+    return { name:t.name, date:goalDate.toISOString().slice(0,10), ok:isOk, passed, needPlus, needKodex, needDiv, curPlus:plusSpeed, curKodex:kodexSpeed, curDiv:divSpeed };
   }
 
   const results = targets.map(calc);
@@ -866,12 +855,14 @@ function analyzeGoal(){
     }
     const diffPlus = r.curPlus - r.needPlus;
     const diffKodex = r.curKodex - r.needKodex;
-    const status = (diffPlus >= 0 && diffKodex >= 0) ? 'ok' : 'bad';
+    const diffDiv = r.curDiv - r.needDiv;
+    const status = (diffPlus >= 0 && diffKodex >= 0 && diffDiv >= 0) ? 'ok' : 'bad';
     return `<div class="goal-card ${status}">
   <div class="goal-title">${r.name} (${r.date})</div>
   <div class="goal-status ${r.ok ? 'goal-good' : 'goal-warn'}">${r.ok ? '🟢 달성 가능' : '🔴 달성 어려움'}</div>
   <div class="goal-sub">PLUS 필요: +${r.needPlus.toFixed(1)}주/일 · 현재: +${r.curPlus.toFixed(1)}주/일 <span class="${diffPlus>=0?'goal-good':'goal-warn'}">${diffPlus>=0?'✓':'✗'}</span></div>
   <div class="goal-sub">KODEX 필요: +${r.needKodex.toFixed(1)}주/일 · 현재: +${r.curKodex.toFixed(1)}주/일 <span class="${diffKodex>=0?'goal-good':'goal-warn'}">${diffKodex>=0?'✓':'✗'}</span></div>
+  <div class="goal-sub">배당 필요: +${r.needDiv.toFixed(2)}만/일 · 현재: +${r.curDiv.toFixed(2)}만/일 <span class="${diffDiv>=0?'goal-good':'goal-warn'}">${diffDiv>=0?'✓':'✗'}</span></div>
 </div>`;
   }
 
