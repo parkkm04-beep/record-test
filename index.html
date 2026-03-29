@@ -1161,11 +1161,12 @@ function renderLogList(latestEl, hiddenEl, emptyEl, filterPrefix) {
   emptyEl.style.display = 'none';
 
   const reversed = [...filtered].reverse();
-  const latest = reversed[0];
-  const rest   = reversed.slice(1);
+  const latest = reversed.slice(0, 3); // 최신 3개
+const rest   = reversed.slice(3);    // 나머지
 
-  // 최신 1개
-  latestEl.innerHTML = renderLogItem(latest, true);
+  // 최신 3개
+  latestEl.innerHTML =
+  latest.map((r, i) => renderLogItem(r, i === 0)).join('');
 
   // 나머지
   hiddenEl.innerHTML = rest.map(r => renderLogItem(r)).join('');
