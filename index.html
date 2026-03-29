@@ -1,4 +1,4 @@
-<!DOCTYPE html>테스터본1
+<!DOCTYPE html>테스터본
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -258,8 +258,6 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
 <div id="log-hidden-list" class="goal-hidden-list"></div>
     <div class="empty-state" id="empty-all" style="display:none">아직 저장된 기록이 없어요.</div>
   </div>
-
-<div id="div-summary"></div>
 
   <!-- 월별 섹션 -->
   <div id="section-month" style="display:none">
@@ -710,36 +708,6 @@ function renderMonthSection(ym) {
   document.getElementById('empty-month'),
   ym
 );
-
-const ym = new Date().toISOString().slice(0, 7);
-
-const monthData = getMonthDivData(ym);
-const reinvest = getReinvestData(monthData);
-const compound = getCompoundData();
-
-const divBox = document.getElementById('div-summary');
-
-if (divBox) {
-  divBox.innerHTML = `
-  <div class="card">
-    <div class="card-title">이번 달 배당</div>
-    <div>총 배당: ${(monthData.total/10000).toFixed(2)}만</div>
-    <div>PLUS: ${(monthData.plus/10000).toFixed(2)}만</div>
-    <div>KODEX: ${(monthData.kodex/10000).toFixed(2)}만</div>
-    <div>+@: ${(monthData.extra/10000).toFixed(2)}만</div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">재투자 (ALL → PLUS)</div>
-    <div>+${reinvest.shares.toFixed(2)}주</div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">복리 효과</div>
-    <div>재투자 금액: ${(compound.value/10000).toFixed(2)}만</div>
-    <div>수익 기여: +${compound.percent.toFixed(2)}%</div>
-  </div>
-  `;
 }
 
 // ────────────────────────────────────────────────
@@ -1449,34 +1417,22 @@ function toggleLogs(btn) {
     isOpen ? '접기' : '전체 기록 보기';
 }
 
-function getMonthDivData(ym) {
-  const divs = JSON.parse(localStorage.getItem('divs') || '[]');
-
+function getMonthlyDivBreakdown(divs, ym) {
   let total = 0;
   let plus = 0;
   let kodex = 0;
 
   divs.forEach(d => {
     if (d.date.startsWith(ym)) {
-      const p = (d.plusDiv || 0) * (records.at(-1)?.plusSh || 0);
-      const k = (d.kodexDiv || 0) * (records.at(-1)?.kodexSh || 0);
+      const plusAmt  = d.plus.shares * d.plus.perShare;
+      const kodexAmt = d.kodex.shares * d.kodex.perShare;
+      const sum = plusAmt + kodexAmt;
 
-      plus += p;
-      kodex += k;
-      total += d.amount || (p + k);
+      total += sum;
+      plus  += plusAmt;
+      kodex += kodexAmt;
     }
   });
-
-  const tracked = plus + kodex;
-  const extra = total - tracked;
-
-  return {
-    total,
-    plus,
-    kodex,
-    extra: extra > 0 ? extra : 0
-  };
-}
 
   const tracked = plus + kodex;
 
@@ -1517,40 +1473,6 @@ function calcCompound(monthDataList, plusPrice) {
 
   return totalShares;
 }
-
-function getReinvestData(monthData) {
-  const last = records.at(-1);
-  if (!last) return { shares: 0 };
-
-  const shares = monthData.total / (last.plusP || 1);
-
-  return {
-    shares
-  };
-}
-
-function getCompoundData() {
-  const divs = JSON.parse(localStorage.getItem('divs') || '[]');
-  const last = records.at(-1);
-  if (!last) return { percent: 0 };
-
-  let totalReinvest = 0;
-
-  divs.forEach(d => {
-    totalReinvest += d.amount || 0;
-  });
-
-  const current =
-    last.plusSh * last.plusP +
-    last.kodexSh * last.kodexP;
-
-  return {
-    value: totalReinvest,
-    percent: current ? (totalReinvest / current) * 100 : 0
-  };
-}
-
-
 
 renderAll();
 </script>
