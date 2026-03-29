@@ -1,4 +1,4 @@
-<!DOCTYPE html>테스터본1
+<!DOCTYPE html>테스터본
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -417,6 +417,17 @@ function onQSInput() {
   const result = {};
 
   const saveMatch = raw.match(/SAVE::(\{[\s\S]*?\})/);
+
+const divMatch = raw.match(/DIV::(\{[\s\S]*?\})/);
+if (divMatch) {
+  try {
+    const d = JSON.parse(divMatch[1]);
+    result.div = d;
+  } catch(e) {
+    console.warn('DIV parse error', e);
+  }
+}
+
   if (saveMatch) {
     try {
       const d = JSON.parse(saveMatch[1]);
@@ -445,7 +456,7 @@ function onQSInput() {
     } catch(e) { console.warn('GOAL parse error', e); }
   }
 
-  if (result.save || result.goal) {
+  if (result.save || result.goal || result.div) {
     qsParsed = result;
     btn.disabled = false;
     if (result.save && result.goal) btn.textContent = '⚡ 기록 + 목표 동시 저장';
@@ -479,7 +490,24 @@ function quickSave() {
     msg.push('목표 업데이트 🎯');
   }
 
-  toast(msg.join(' · '));
+if (qsParsed.div) {
+  const d = qsParsed.div;
+
+  let divs = JSON.parse(localStorage.getItem('divs') || '[]');
+
+  divs.push(d);
+
+  localStorage.setItem('divs', JSON.stringify(divs));
+
+  msg.push('배당 저장 💰');
+
+toast(msg.join(' · '));
+
+renderAll();
+
+}
+
+ 
   document.getElementById('qs-input').value = '';
   document.getElementById('qs-preview').style.display = 'none';
   document.getElementById('qs-goal-preview').style.display = 'none';
