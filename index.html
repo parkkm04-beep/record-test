@@ -1389,6 +1389,63 @@ function toggleLogs(btn) {
     isOpen ? '접기' : '전체 기록 보기';
 }
 
+function getMonthlyDivBreakdown(divs, ym) {
+  let total = 0;
+  let plus = 0;
+  let kodex = 0;
+
+  divs.forEach(d => {
+    if (d.date.startsWith(ym)) {
+      const plusAmt  = d.plus.shares * d.plus.perShare;
+      const kodexAmt = d.kodex.shares * d.kodex.perShare;
+      const sum = plusAmt + kodexAmt;
+
+      total += sum;
+      plus  += plusAmt;
+      kodex += kodexAmt;
+    }
+  });
+
+  const tracked = plus + kodex;
+
+  return {
+    total,              // 총 배당 (현재는 추적된 값 기준)
+    plus,
+    kodex,
+    extra: 0,           // 여기서 나중에 보정
+    tracked
+  };
+}
+
+function applyRealTotal(monthData, realTotal) {
+  const extra = realTotal - (monthData.plus + monthData.kodex);
+
+  return {
+    ...monthData,
+    total: realTotal,
+    extra: extra > 0 ? extra : 0
+  };
+}
+
+function calcReinvestTotal(monthData, plusPrice) {
+  const shares = monthData.total / plusPrice;
+
+  return {
+    buyShares: shares,
+    usedAmount: monthData.total
+  };
+}
+
+function calcCompound(monthDataList, plusPrice) {
+  let totalShares = 0;
+
+  monthDataList.forEach(m => {
+    totalShares += m.total / plusPrice;
+  });
+
+  return totalShares;
+}
+
 renderAll();
 </script>
 </body>
