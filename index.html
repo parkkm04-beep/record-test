@@ -270,7 +270,15 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
       <canvas id="month-inner-chart" height="140"></canvas>
     </div>
     <div class="sec">기록 목록</div>
-    <div id="log-list-month"></div>
+    <div id="log-list-month-latest"></div>
+
+<div style="display:flex;justify-content:flex-end;margin-top:6px;">
+  <button class="expand-btn" onclick="toggleLogs(this)">
+    <span>전체 기록 보기</span><span class="arr">▼</span>
+  </button>
+</div>
+
+<div id="log-list-month-hidden" class="goal-hidden-list"></div>
     <div class="empty-state" id="empty-month" style="display:none">이 달 기록이 없어요.</div>
   </div>
 
@@ -661,7 +669,12 @@ function renderMonthSection(ym) {
   document.getElementById('month-section-title').textContent = ym.slice(5) + '월';
   renderMonthGoal(ym);
   renderMonthInnerChart(ym);
-  renderLogList(document.getElementById('log-list-month'), document.getElementById('empty-month'), ym);
+  renderLogList(
+  document.getElementById('log-list-month-latest'),
+  document.getElementById('log-list-month-hidden'),
+  document.getElementById('empty-month'),
+  ym
+);
 }
 
 // ────────────────────────────────────────────────
@@ -1128,12 +1141,14 @@ function renderMonthlyCharts(filtered) {
 // 기록 목록
 // ────────────────────────────────────────────────
 
-function renderLogList(listEl, emptyEl, filterPrefix) {
+function renderLogList(latestEl, hiddenEl, emptyEl, filterPrefix) {
   let filtered = filterPrefix
     ? records.filter(r => r.date.startsWith(filterPrefix))
     : [...records];
 
   if (!filtered.length) {
+    latestEl.innerHTML = '';
+    hiddenEl.innerHTML = '';
     emptyEl.style.display = 'block';
     return;
   }
@@ -1141,21 +1156,20 @@ function renderLogList(listEl, emptyEl, filterPrefix) {
   emptyEl.style.display = 'none';
 
   const reversed = [...filtered].reverse();
-
   const latest = reversed[0];
   const rest   = reversed.slice(1);
 
   // 최신 1개
-  document.getElementById('log-list-latest').innerHTML =
-    renderLogItem(latest, true);
+  latestEl.innerHTML = renderLogItem(latest, true);
 
   // 나머지
-  document.getElementById('log-hidden-list').innerHTML =
-    rest.map(r => renderLogItem(r)).join('');
+  hiddenEl.innerHTML = rest.map(r => renderLogItem(r)).join('');
 
   // 버튼 표시
-  const btn = document.getElementById('log-expand-btn');
-  btn.parentElement.style.display = rest.length ? 'flex' : 'none';
+  const btnWrap = hiddenEl.previousElementSibling;
+  if (btnWrap) {
+    btnWrap.style.display = rest.length ? 'flex' : 'none';
+  }
 }
 
 // ────────────────────────────────────────────────
@@ -1357,6 +1371,16 @@ function renderLogItem(r, isLatest=false) {
 
     ${delta}
   </div>`;
+}
+
+function toggleLogs(btn) {
+  const hidden = btn.parentElement.nextElementSibling;
+
+  const isOpen = hidden.classList.toggle('open');
+
+  btn.classList.toggle('open', isOpen);
+  btn.querySelector('span').textContent =
+    isOpen ? '접기' : '전체 기록 보기';
 }
 
 renderAll();
