@@ -56,13 +56,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
 /* ── 아코디언 월별 셀렉터 ── */
 .month-nav{margin-bottom:16px;display:flex;flex-direction:column;gap:0;}
-
-/* 전체 버튼 */
 .mn-all-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;border:1px solid #182a40;background:transparent;color:#4a6080;font-size:11px;font-weight:700;cursor:pointer;font-family:'Space Mono',monospace;transition:all .15s;margin-bottom:10px;align-self:flex-start;}
 .mn-all-btn:hover{color:#e2e8f0;border-color:#334a60;}
 .mn-all-btn.active{background:rgba(167,139,250,.2);border-color:#a78bfa;color:#a78bfa;}
-
-/* 년도 그룹 */
 .mn-year-group{margin-bottom:8px;}
 .mn-year-header{display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0;user-select:none;}
 .mn-year-label{font-size:15px;font-weight:900;font-family:'Space Mono',monospace;color:#00e5ff;letter-spacing:1px;transition:color .15s;}
@@ -70,8 +66,6 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .mn-year-arrow{font-size:10px;color:#00e5ff;transition:transform .25s,color .15s;display:inline-block;}
 .mn-year-arrow.inactive{color:#334a60;}
 .mn-year-arrow.collapsed{transform:rotate(180deg);}
-
-/* 월 목록 (슬라이드) */
 .mn-months-wrap{overflow:hidden;max-height:0;transition:max-height .3s ease;}
 .mn-months-wrap.open{max-height:200px;}
 .mn-months-row{display:flex;flex-wrap:wrap;gap:8px;padding:8px 0 4px 0;}
@@ -138,7 +132,6 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 .no-goal{font-size:11px;color:#4a6080;text-align:center;padding:12px;font-family:'Space Mono',monospace;}
 
-.goal-cards{display:flex;flex-direction:column;gap:8px;margin:8px 0 12px;}
 .goal-card{background:#112035;border-radius:10px;padding:12px;border:1px solid rgba(0,229,255,.15);font-size:11px;font-family:'Space Mono',monospace;position:relative;}
 .goal-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:10px 0 0 10px;}
 .goal-card.ok::before{background:#00e5ff;}
@@ -152,6 +145,7 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
 .goal-warn{color:#ef4444;}
 .goal-done{color:#a78bfa;}
 .goal-fail{color:#9ca3af;}
+.goal-exceed{color:#ef4444;font-weight:700;}
 
 .goal-accordion{display:flex;flex-direction:column;gap:8px;}
 .goal-hidden-list{max-height:0;overflow:hidden;transition:max-height 0.4s ease-in-out;display:flex;flex-direction:column;gap:8px;}
@@ -242,7 +236,6 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
   </div>
 
   <div class="sec">월별 보기</div>
-  <!-- 계층형 월별 네비게이터 -->
   <div class="month-nav" id="month-nav"></div>
 
   <!-- 전체 섹션 -->
@@ -305,6 +298,94 @@ let nav = { type:'all', year:null, ym:null };
 document.getElementById('inp-date').value = new Date().toISOString().slice(0,10);
 
 // ────────────────────────────────────────────────
+// 한국 주식시장 공휴일 (2025~2027)
+// 출처: KRX 시장 휴장일 기준
+// ────────────────────────────────────────────────
+const KR_HOLIDAYS = new Set([
+  // 2025
+  '2025-01-01','2025-01-27','2025-01-28','2025-01-29','2025-01-30',
+  '2025-03-01','2025-05-01','2025-05-05','2025-05-06',
+  '2025-06-06','2025-08-15',
+  '2025-10-03','2025-10-05','2025-10-06','2025-10-07','2025-10-08','2025-10-09',
+  '2025-12-25',
+  // 2026
+  '2026-01-01','2026-01-28','2026-01-29','2026-01-30',
+  '2026-03-01','2026-03-02','2026-05-01','2026-05-05','2026-05-25',
+  '2026-06-06','2026-08-15','2026-08-17',
+  '2026-09-24','2026-09-25','2026-09-26',
+  '2026-10-03','2026-10-05','2026-10-09',
+  '2026-12-25',
+  // 2027
+  '2027-01-01','2027-02-07','2027-02-08','2027-02-09','2027-02-10',
+  '2027-03-01','2027-05-01','2027-05-05','2027-05-13',
+  '2027-06-06','2027-08-15','2027-08-16',
+  '2027-09-14','2027-09-15','2027-09-16','2027-09-17',
+  '2027-10-03','2027-10-04','2027-10-09',
+  '2027-12-25','2027-12-27'
+]);
+
+/**
+ * 두 날짜 사이의 주식 거래 가능일 수를 계산한다.
+ * from 당일은 포함하지 않고, to 당일도 포함하지 않는다.
+ * (즉, from < 날짜 < to 인 거래일 수)
+ * from === to 면 0 반환.
+ */
+function countTradingDays(fromDate, toDate) {
+  const start = new Date(fromDate);
+  const end   = new Date(toDate);
+  start.setHours(0,0,0,0);
+  end.setHours(0,0,0,0);
+
+  if (start >= end) return 0;
+
+  let count = 0;
+  const cur = new Date(start);
+  cur.setDate(cur.getDate() + 1); // from 다음날부터 시작
+  while (cur < end) {
+    const dow = cur.getDay(); // 0=일, 6=토
+    if (dow !== 0 && dow !== 6) {
+      const ymd = cur.toISOString().slice(0, 10);
+      if (!KR_HOLIDAYS.has(ymd)) count++;
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  return count;
+}
+
+/**
+ * 두 날짜 사이(양 끝 포함) 거래일 수 — 속도 계산용
+ * from 당일과 to 당일 사이의 차이를 표현하기 위해
+ * from 다음날 ~ to 당일까지 거래일 수를 반환.
+ */
+function tradingDaySpan(fromDate, toDate) {
+  return Math.max(1, countTradingDays(fromDate, toDate));
+}
+
+// ────────────────────────────────────────────────
+// 색상 / 라벨 헬퍼
+// 초과달성(≥105%)은 한국 주식 상승 색인 빨간계열로 표시
+// ────────────────────────────────────────────────
+function pctColor(pct, isFuture) {
+  if (isFuture) {
+    if (pct >= 80) return '#00e5ff';
+    if (pct >= 50) return '#a78bfa';
+    return '#4a6080';
+  }
+  if (pct >= 105) return '#ef4444'; // 초과달성 — 한국 주식 상승색(적색)
+  if (pct >= 95)  return '#00e5ff'; // 정상 궤도
+  if (pct >= 85)  return '#fbbf24'; // 소폭 미달
+  return '#6b7280';                 // 계획 수정 필요
+}
+
+function pctLabel(pct, isFuture) {
+  if (isFuture) return '';
+  if (pct >= 105) return '초과 달성 🔴';
+  if (pct >= 95)  return '정상 궤도 ✅';
+  if (pct >= 85)  return '소폭 미달 ⚠️';
+  return '계획 수정 필요 ❗';
+}
+
+// ────────────────────────────────────────────────
 // 빠른 저장 입력 파싱
 // ────────────────────────────────────────────────
 function onQSInput() {
@@ -326,10 +407,10 @@ function onQSInput() {
       if (d.date && d.plusSh != null) {
         result.save = d;
         const md = (d.plusSh || 0) * 156 + (d.kodexSh || 0) * 244;
-        document.getElementById('qp-date').textContent = d.date;
-        document.getElementById('qp-plus').textContent = (d.plusSh || 0) + '주';
+        document.getElementById('qp-date').textContent  = d.date;
+        document.getElementById('qp-plus').textContent  = (d.plusSh || 0) + '주';
         document.getElementById('qp-kodex').textContent = (d.kodexSh || 0) + '주';
-        document.getElementById('qp-div').textContent = (md / 10000).toFixed(2) + '만';
+        document.getElementById('qp-div').textContent   = (md / 10000).toFixed(2) + '만';
         preview.style.display = 'grid';
       }
     } catch(e) { console.warn('SAVE parse error', e); }
@@ -461,29 +542,6 @@ function loadData() {
 }
 
 // ────────────────────────────────────────────────
-// 색상 / 라벨 헬퍼
-// ────────────────────────────────────────────────
-function pctColor(pct, isFuture) {
-  if (isFuture) {
-    if (pct >= 80) return '#00e5ff';
-    if (pct >= 50) return '#a78bfa';
-    return '#4a6080';
-  }
-  if (pct >= 105) return '#fbbf24';
-  if (pct >= 95)  return '#00e5ff';
-  if (pct >= 85)  return '#fbbf24';
-  return '#fb7185';
-}
-
-function pctLabel(pct, isFuture) {
-  if (isFuture) return '';
-  if (pct >= 105) return '초과 달성 🚀';
-  if (pct >= 95)  return '정상 궤도 ✅';
-  if (pct >= 85)  return '소폭 미달 ⚠️';
-  return '계획 수정 필요 ❗';
-}
-
-// ────────────────────────────────────────────────
 // 계층형 월별 네비게이터
 // ────────────────────────────────────────────────
 function getYears()  { return [...new Set(records.map(r => r.date.slice(0,4)))].sort(); }
@@ -498,15 +556,10 @@ function renderMonthNav() {
 
   if (!years.length) return;
 
-  // ── 최근 년도 결정 (가장 큰 값)
   const latestYear = years[years.length - 1];
-
-  // ── 어떤 년도가 펼쳐져야 하는가
-  // 전체 선택 시 → 최근 년도만 펼침
-  // 특정 년도/월 선택 시 → 해당 년도 펼침
   const expandedYear = nav.type === 'all' ? latestYear : (nav.year || latestYear);
 
-  // ── 전체 버튼
+  // 전체 버튼
   const allBtn = document.createElement('button');
   allBtn.className = 'mn-all-btn' + (nav.type === 'all' ? ' active' : '');
   allBtn.textContent = '전체';
@@ -518,7 +571,7 @@ function renderMonthNav() {
   };
   container.appendChild(allBtn);
 
-  // ── 년도별 아코디언 그룹 (최신 년도가 위에)
+  // 년도별 아코디언 그룹 (최신 년도 위)
   [...years].reverse().forEach(yr => {
     const isExpanded = yr === expandedYear;
     const monthsInYear = months.filter(m => m.startsWith(yr));
@@ -526,7 +579,6 @@ function renderMonthNav() {
     const group = document.createElement('div');
     group.className = 'mn-year-group';
 
-    // 년도 헤더 (라벨 + 화살표)
     const header = document.createElement('div');
     header.className = 'mn-year-header';
     header.innerHTML = `
@@ -534,7 +586,6 @@ function renderMonthNav() {
       <span class="mn-year-arrow${isExpanded ? '' : ' inactive collapsed'}">▲</span>`;
     header.onclick = () => {
       if (isExpanded && nav.year === yr) {
-        // 이미 선택된 년도를 클릭 → 전체로
         nav = { type: 'all', year: null, ym: null };
       } else {
         nav = { type: 'year', year: yr, ym: null };
@@ -544,7 +595,6 @@ function renderMonthNav() {
       renderMonthNav();
     };
 
-    // 월 목록 래퍼 (슬라이드)
     const wrap = document.createElement('div');
     wrap.className = 'mn-months-wrap' + (isExpanded ? ' open' : '');
 
@@ -583,7 +633,6 @@ function showSection(which) {
 // 섹션별 렌더
 // ────────────────────────────────────────────────
 function renderAllContent() {
-  // 필터링: 전체 / 년도 / 특정월
   let filtered = records;
   if (nav.type === 'year' && nav.year) {
     filtered = records.filter(r => r.date.startsWith(nav.year));
@@ -608,7 +657,7 @@ function renderMonthSection(ym) {
 }
 
 // ────────────────────────────────────────────────
-// 전역 달성도
+// 전역 달성도 (진행도 바)
 // ────────────────────────────────────────────────
 function renderDischarge() {
   const sec = document.getElementById('discharge-section');
@@ -709,15 +758,16 @@ function mkMini(label, color, cur, goal, unit, pct, isFuture) {
 }
 
 // ────────────────────────────────────────────────
-// 달성 가능성 분석 (재검토)
+// 달성 가능성 분석
 //
-// 핵심 로직:
-//   현재까지의 일평균 증가 속도를 계산한 뒤,
-//   목표일까지 남은 일수 동안 해당 속도가 유지될 때
-//   목표 주수/배당에 도달할 수 있는지 판단.
+// ★ 주식 거래일(주말·한국 공휴일 제외) 기준으로 계산
 //
-//   주의: 군 복무 중 적립식 투자이므로 매일 조금씩 증가.
-//   "현재 보유 + (남은 날수 × 일평균 속도) >= 목표"
+// 속도 계산:
+//   (최신 보유량 - 최초 보유량) ÷ 기록 기간 거래일 수
+//   → 하루(거래일 1일)당 평균 증가량
+//
+// 예상 달성:
+//   현재 보유량 + (목표일까지 남은 거래일 × 거래일당 속도) ≥ 목표
 // ────────────────────────────────────────────────
 function analyzeGoal() {
   if (!goals || !goals.discharge || records.length < 2) return '';
@@ -741,9 +791,9 @@ function analyzeGoal() {
   const d = goals.discharge;
 
   const targets = [
-    { name:'일병', date: privateDate,  plusGoal: Math.round(d.plusSh*0.4),  kodexGoal: Math.round(d.kodexSh*0.4),  divGoal: +(d.div*0.4).toFixed(1)  },
-    { name:'상병', date: corporalDate, plusGoal: Math.round(d.plusSh*0.7),  kodexGoal: Math.round(d.kodexSh*0.7),  divGoal: +(d.div*0.7).toFixed(1)  },
-    { name:'전역', date: dischargeDate,plusGoal: d.plusSh,                  kodexGoal: d.kodexSh,                  divGoal: d.div                    }
+    { name:'일병', date: privateDate,   plusGoal: Math.round(d.plusSh*0.4),  kodexGoal: Math.round(d.kodexSh*0.4),  divGoal: +(d.div*0.4).toFixed(1)  },
+    { name:'상병', date: corporalDate,  plusGoal: Math.round(d.plusSh*0.7),  kodexGoal: Math.round(d.kodexSh*0.7),  divGoal: +(d.div*0.7).toFixed(1)  },
+    { name:'전역', date: dischargeDate, plusGoal: d.plusSh,                  kodexGoal: d.kodexSh,                  divGoal: d.div                    }
   ];
 
   // milestones가 있으면 우선 사용
@@ -757,16 +807,17 @@ function analyzeGoal() {
     });
   }
 
-  // 전체 기록 기간으로 속도 계산
   const first   = records[0];
   const last    = records[records.length - 1];
-  const daySpan = Math.max(1, (new Date(last.date) - new Date(first.date)) / (1000*60*60*24));
 
-  const plusSpeed  = (last.plusSh  - first.plusSh)  / daySpan; // 주/일
-  const kodexSpeed = (last.kodexSh - first.kodexSh) / daySpan; // 주/일
+  // ★ 주식 거래일 기준 속도 계산
+  const tradingSpan = tradingDaySpan(first.date, last.date);
+
+  const plusSpeed  = (last.plusSh  - first.plusSh)  / tradingSpan; // 주/거래일
+  const kodexSpeed = (last.kodexSh - first.kodexSh) / tradingSpan; // 주/거래일
   const lastDiv    = (last.plusSh  * 156 + last.kodexSh  * 244) / 10000;
   const firstDiv   = (first.plusSh * 156 + first.kodexSh * 244) / 10000;
-  const divSpeed   = (lastDiv - firstDiv) / daySpan; // 만원/일
+  const divSpeed   = (lastDiv - firstDiv) / tradingSpan; // 만원/거래일
 
   const today = new Date();
   today.setHours(0,0,0,0);
@@ -777,13 +828,15 @@ function analyzeGoal() {
 
     const isPast = goalDate <= today;
 
-    // 목표일까지 남은 일수 (과거면 음수)
-    const remainDays = (goalDate - today) / (1000*60*60*24);
+    // ★ 목표일까지 남은 거래일 수 (오늘 기준)
+    const remainTD = isPast ? 0 : countTradingDays(today, goalDate);
+    // 단순 달력일도 D-표시용으로 계산
+    const remainCalDays = Math.round((goalDate - today) / (1000*60*60*24));
 
-    // 현재 속도로 목표일까지 예상 달성값
-    const projPlus  = last.plusSh  + plusSpeed  * remainDays;
-    const projKodex = last.kodexSh + kodexSpeed * remainDays;
-    const projDiv   = lastDiv      + divSpeed   * remainDays;
+    // 현재 거래일 속도로 목표일까지 예상 달성값
+    const projPlus  = last.plusSh  + plusSpeed  * remainTD;
+    const projKodex = last.kodexSh + kodexSpeed * remainTD;
+    const projDiv   = lastDiv      + divSpeed   * remainTD;
 
     const isOkPlus  = projPlus  >= t.plusGoal;
     const isOkKodex = projKodex >= t.kodexGoal;
@@ -795,26 +848,30 @@ function analyzeGoal() {
     const kodexPct = Math.round(last.kodexSh / t.kodexGoal * 100);
     const divPct   = Math.round(lastDiv      / t.divGoal   * 100);
 
-    // 목표일까지 필요한 일평균 속도
-    const needPlus  = remainDays > 0 ? (t.plusGoal  - last.plusSh)  / remainDays : null;
-    const needKodex = remainDays > 0 ? (t.kodexGoal - last.kodexSh) / remainDays : null;
-    const needDiv   = remainDays > 0 ? (t.divGoal   - lastDiv)      / remainDays : null;
+    // 목표일까지 필요한 거래일당 속도
+    const needPlus  = remainTD > 0 ? (t.plusGoal  - last.plusSh)  / remainTD : null;
+    const needKodex = remainTD > 0 ? (t.kodexGoal - last.kodexSh) / remainTD : null;
+    const needDiv   = remainTD > 0 ? (t.divGoal   - lastDiv)      / remainTD : null;
 
-    return { ...t, isPast, remainDays: Math.round(remainDays), allOk,
+    return {
+      ...t, isPast, remainTD, remainCalDays, allOk,
       isOkPlus, isOkKodex, isOkDiv,
       plusPct, kodexPct, divPct,
-      projPlus: Math.round(projPlus), projKodex: Math.round(projKodex), projDiv: projDiv.toFixed(1),
+      projPlus: Math.round(projPlus),
+      projKodex: Math.round(projKodex),
+      projDiv: projDiv.toFixed(1),
       needPlus, needKodex, needDiv,
-      plusSpeed, kodexSpeed, divSpeed };
+      plusSpeed, kodexSpeed, divSpeed
+    };
   }
 
   const results = targets.map(calcTarget);
 
   function makeCard(r) {
-    const dateStr = r.date.toISOString ? r.date.toISOString().slice(0,10) : String(r.date).slice(0,10);
+    const goalDate = r.date instanceof Date ? r.date : new Date(r.date);
+    const dateStr  = goalDate.toISOString().slice(0, 10);
 
     if (r.isPast) {
-      // 이미 지난 시점 — 실제 달성 여부
       const reachedPlus  = last.plusSh  >= r.plusGoal;
       const reachedKodex = last.kodexSh >= r.kodexGoal;
       const reachedDiv   = lastDiv      >= r.divGoal;
@@ -828,27 +885,36 @@ function analyzeGoal() {
 </div>`;
     }
 
-    // 미래 시점
+    // 미래 시점 — 거래일 기준 속도 차이
     const diffP = r.needPlus  != null ? (r.plusSpeed  - r.needPlus).toFixed(2)  : '∞';
     const diffK = r.needKodex != null ? (r.kodexSpeed - r.needKodex).toFixed(2) : '∞';
+    const diffD = r.needDiv   != null ? (r.divSpeed   - r.needDiv).toFixed(3)   : '∞';
+    const isExceedP = r.plusPct  >= 105;
+    const isExceedK = r.kodexPct >= 105;
+    const isExceedD = r.divPct   >= 105;
+
     return `<div class="goal-card ${r.allOk ? 'ok' : 'bad'}">
-  <div class="goal-title">${r.name} (${dateStr}, D-${r.remainDays})</div>
+  <div class="goal-title">${r.name} (${dateStr}, D-${Math.max(0,r.remainCalDays)} / 거래일 ${r.remainTD}일)</div>
   <div class="goal-status ${r.allOk ? 'goal-good' : 'goal-warn'}">${r.allOk ? '🟢 달성 가능' : '🔴 속도 부족'}</div>
   <div class="goal-sub">
     PLUS 현재 ${last.plusSh}주 → 예상 ${r.projPlus}주 / 목표 ${r.plusGoal}주
-    <span class="${r.isOkPlus ? 'goal-good' : 'goal-warn'}">${r.isOkPlus ? '✓' : '✗'}</span>
+    <span class="${r.isOkPlus ? (isExceedP ? 'goal-exceed' : 'goal-good') : 'goal-warn'}">${r.isOkPlus ? '✓' : '✗'}</span>
   </div>
   <div class="goal-sub">
     KODEX 현재 ${last.kodexSh}주 → 예상 ${r.projKodex}주 / 목표 ${r.kodexGoal}주
-    <span class="${r.isOkKodex ? 'goal-good' : 'goal-warn'}">${r.isOkKodex ? '✓' : '✗'}</span>
+    <span class="${r.isOkKodex ? (isExceedK ? 'goal-exceed' : 'goal-good') : 'goal-warn'}">${r.isOkKodex ? '✓' : '✗'}</span>
   </div>
   <div class="goal-sub">
     배당 ${lastDiv.toFixed(1)}만 → 예상 ${r.projDiv}만 / 목표 ${r.divGoal}만
-    <span class="${r.isOkDiv ? 'goal-good' : 'goal-warn'}">${r.isOkDiv ? '✓' : '✗'}</span>
+    <span class="${r.isOkDiv ? (isExceedD ? 'goal-exceed' : 'goal-good') : 'goal-warn'}">${r.isOkDiv ? '✓' : '✗'}</span>
   </div>
   <div class="goal-sub" style="margin-top:4px;color:#334a60;">
-    필요 속도: PLUS +${r.needPlus!=null?r.needPlus.toFixed(2):''}주/일 · 현재 +${r.plusSpeed.toFixed(2)}주/일
-    (여유 ${diffP>=0?'+':''}${diffP})
+    필요 속도: PLUS +${r.needPlus!=null?r.needPlus.toFixed(2):''}주/거래일 · 현재 +${r.plusSpeed.toFixed(2)}주/거래일
+    (여유 ${Number(diffP)>=0?'+':''}${diffP})
+  </div>
+  <div class="goal-sub" style="color:#334a60;">
+    배당 필요: +${r.needDiv!=null?r.needDiv.toFixed(3):''}만/거래일 · 현재 +${r.divSpeed.toFixed(3)}만/거래일
+    (여유 ${Number(diffD)>=0?'+':''}${diffD})
   </div>
 </div>`;
   }
@@ -856,12 +922,11 @@ function analyzeGoal() {
   const htmlCards = results.map(makeCard);
   if (!htmlCards.length) return '';
 
-  // 아직 지나지 않은 첫 시점을 앞에 표시
   let topIdx = results.findIndex(r => !r.isPast);
   if (topIdx === -1) topIdx = results.length - 1;
 
-  const topCard   = htmlCards[topIdx];
-  const restHtml  = htmlCards.filter((_, i) => i !== topIdx).join('');
+  const topCard  = htmlCards[topIdx];
+  const restHtml = htmlCards.filter((_, i) => i !== topIdx).join('');
 
   return `<div class="goal-accordion">
   ${topCard}
@@ -899,9 +964,9 @@ function renderMonthGoal(ym) {
   <div style="font-size:10px;color:#4a6080;font-family:'Space Mono',monospace;">${mg.ym || ym} 기준</div>
 </div>
 <div class="mg-grid">
-  ${mkMonthItem('PLUS',   '#00e5ff', latest.plusSh, mg.plusSh, '주', plusPct)}
-  ${mkMonthItem('KODEX',  '#a78bfa', latest.kodexSh, mg.kodexSh, '주', kodexPct)}
-  ${mkMonthItem('월배당', '#fb923c', curDiv.toFixed(2), mg.div, '만', divPct)}
+  ${mkMonthItem('PLUS',   '#00e5ff', latest.plusSh,       mg.plusSh,  '주', plusPct)}
+  ${mkMonthItem('KODEX',  '#a78bfa', latest.kodexSh,      mg.kodexSh, '주', kodexPct)}
+  ${mkMonthItem('월배당', '#fb923c', curDiv.toFixed(2),   mg.div,     '만', divPct)}
 </div>`;
 }
 
@@ -939,7 +1004,7 @@ function renderMonthInnerChart(ym) {
         ]
       },
       options: {
-        responsive:true,
+        responsive: true,
         plugins: {
           legend:  { display:true, labels:{ color:'#e2e8f0', font:{size:10}, boxWidth:12 } },
           tooltip: { backgroundColor:'#0c1525', titleColor:'#e2e8f0', bodyColor:'#e2e8f0' }
@@ -978,6 +1043,32 @@ function renderMonthlyCharts(filtered) {
     };
   }).filter(Boolean);
 
+  // 월별 목표 대비 달성률로 바 색상 결정 (초과달성이면 적색, 정상이면 시안, 미달이면 노랑/회색)
+  function barColorPlus(gain) {
+    if (!goals || !goals.monthGoal || !goals.monthGoal.plusSh) return 'rgba(0,229,255,.7)';
+    const pct = gain / goals.monthGoal.plusSh * 100;
+    if (pct >= 105) return 'rgba(239,68,68,.8)';
+    if (pct >= 95)  return 'rgba(0,229,255,.7)';
+    if (pct >= 85)  return 'rgba(251,191,36,.7)';
+    return 'rgba(107,114,128,.6)';
+  }
+  function barColorKodex(gain) {
+    if (!goals || !goals.monthGoal || !goals.monthGoal.kodexSh) return 'rgba(167,139,250,.7)';
+    const pct = gain / goals.monthGoal.kodexSh * 100;
+    if (pct >= 105) return 'rgba(239,68,68,.8)';
+    if (pct >= 95)  return 'rgba(167,139,250,.7)';
+    if (pct >= 85)  return 'rgba(251,191,36,.7)';
+    return 'rgba(107,114,128,.6)';
+  }
+  function barColorDiv(gain) {
+    if (!goals || !goals.monthGoal || !goals.monthGoal.div) return 'rgba(251,146,60,.7)';
+    const pct = gain / goals.monthGoal.div * 100;
+    if (pct >= 105) return 'rgba(239,68,68,.8)';
+    if (pct >= 95)  return 'rgba(251,146,60,.7)';
+    if (pct >= 85)  return 'rgba(251,191,36,.7)';
+    return 'rgba(107,114,128,.6)';
+  }
+
   wrap.innerHTML = '';
 
   // 수량 차트
@@ -991,14 +1082,32 @@ function renderMonthlyCharts(filtered) {
     data: {
       labels: monthData.map(d => d.label),
       datasets: [
-        { label:'PLUS',  data: monthData.map(d => d.plusGain),  backgroundColor:'rgba(0,229,255,.7)',   borderColor:'#00e5ff', borderWidth:1, borderRadius:4 },
-        { label:'KODEX', data: monthData.map(d => d.kodexGain), backgroundColor:'rgba(167,139,250,.7)', borderColor:'#a78bfa', borderWidth:1, borderRadius:4 }
+        {
+          label: 'PLUS',
+          data: monthData.map(d => d.plusGain),
+          backgroundColor: monthData.map(d => barColorPlus(d.plusGain)),
+          borderColor: monthData.map(d => barColorPlus(d.plusGain).replace('.8)','.1)').replace('.7)','.1)')),
+          borderWidth: 1, borderRadius: 4
+        },
+        {
+          label: 'KODEX',
+          data: monthData.map(d => d.kodexGain),
+          backgroundColor: monthData.map(d => barColorKodex(d.kodexGain)),
+          borderColor: monthData.map(d => barColorKodex(d.kodexGain).replace('.8)','.1)').replace('.7)','.1)')),
+          borderWidth: 1, borderRadius: 4
+        }
       ]
     },
     options: {
       responsive: true,
       plugins: {
-        legend:  { display:true, labels:{ color:'#e2e8f0', font:{size:10}, boxWidth:12 } },
+        legend:  { display:true, labels:{ color:'#e2e8f0', font:{size:10}, boxWidth:12,
+          generateLabels: () => [
+            { text:'PLUS',  fillStyle:'rgba(0,229,255,.7)',   strokeStyle:'transparent', lineWidth:0 },
+            { text:'KODEX', fillStyle:'rgba(167,139,250,.7)', strokeStyle:'transparent', lineWidth:0 },
+            { text:'초과달성', fillStyle:'rgba(239,68,68,.8)', strokeStyle:'transparent', lineWidth:0 }
+          ]
+        }},
         tooltip: { backgroundColor:'#0c1525', titleColor:'#e2e8f0', bodyColor:'#e2e8f0',
           callbacks: { label: c => ` ${c.dataset.label} +${c.parsed.y}주` } }
       },
@@ -1019,8 +1128,12 @@ function renderMonthlyCharts(filtered) {
     type: 'bar',
     data: {
       labels: monthData.map(d => d.label),
-      datasets: [{ label:'배당 증가', data: monthData.map(d => +d.divGain.toFixed(2)),
-        backgroundColor:'rgba(251,146,60,.7)', borderColor:'#fb923c', borderWidth:1, borderRadius:4 }]
+      datasets: [{
+        label: '배당 증가',
+        data: monthData.map(d => +d.divGain.toFixed(2)),
+        backgroundColor: monthData.map(d => barColorDiv(d.divGain)),
+        borderColor: '#fb923c', borderWidth: 1, borderRadius: 4
+      }]
     },
     options: {
       responsive: true,
@@ -1153,6 +1266,8 @@ function delRec(date) { records = records.filter(r => r.date !== date); persist(
 function clearAll() {
   if (!confirm('전체 삭제할까요?')) return;
   records = [];
+  goals   = null;
+  localStorage.removeItem(GKEY);
   persist();
   renderAll();
 }
@@ -1218,7 +1333,6 @@ function toast(msg, isErr = false) {
 // ────────────────────────────────────────────────
 loadData();
 
-// 데이터가 있으면 가장 최근 년도를 기본 선택
 if (records.length) {
   const years = [...new Set(records.map(r => r.date.slice(0,4)))].sort();
   const latestYear = years[years.length - 1];
