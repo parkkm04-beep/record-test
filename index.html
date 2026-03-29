@@ -250,7 +250,7 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
     <div id="log-list-latest"></div>
 
 <div style="display:flex;justify-content:flex-end;margin-top:6px;">
-  <button class="expand-btn" id="log-expand-btn" onclick="toggleLogs()">
+  <button class="expand-btn" id="log-expand-btn" onclick="toggleLogs(this)">
     <span>전체 기록 보기</span><span class="arr">▼</span>
   </button>
 </div>
@@ -657,7 +657,12 @@ function renderAllContent() {
   if (nav.type === 'all') {
     renderDischarge();
     renderMonthlyCharts(filtered);
-    renderLogList(document.getElementById('log-list-all'), document.getElementById('empty-all'), null);
+    renderLogList(
+  document.getElementById('log-list-latest'),
+  document.getElementById('log-hidden-list'),
+  document.getElementById('empty-all'),
+  null
+);
   } else if (nav.type === 'year') {
     renderDischarge();
     renderMonthlyCharts(filtered);
