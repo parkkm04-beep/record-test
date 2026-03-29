@@ -379,7 +379,7 @@ function pctColor(pct, isFuture) {
 
 function pctLabel(pct, isFuture) {
   if (isFuture) return '';
-  if (pct >= 105) return '초과 달성 🔴';
+  if (pct >= 105) return '초과 달성 🚀';
   if (pct >= 95)  return '정상 궤도 ✅';
   if (pct >= 85)  return '소폭 미달 ⚠️';
   return '계획 수정 필요 ❗';
@@ -908,13 +908,22 @@ function analyzeGoal() {
     배당 ${lastDiv.toFixed(1)}만 → 예상 ${r.projDiv}만 / 목표 ${r.divGoal}만
     <span class="${r.isOkDiv ? (isExceedD ? 'goal-exceed' : 'goal-good') : 'goal-warn'}">${r.isOkDiv ? '✓' : '✗'}</span>
   </div>
-  <div class="goal-sub" style="margin-top:4px;color:#334a60;">
-    필요 속도: PLUS +${r.needPlus!=null?r.needPlus.toFixed(2):''}주/거래일 · 현재 +${r.plusSpeed.toFixed(2)}주/거래일
-    (여유 ${Number(diffP)>=0?'+':''}${diffP})
-  </div>
-  <div class="goal-sub" style="color:#334a60;">
-    배당 필요: +${r.needDiv!=null?r.needDiv.toFixed(3):''}만/거래일 · 현재 +${r.divSpeed.toFixed(3)}만/거래일
-    (여유 ${Number(diffD)>=0?'+':''}${diffD})
+  <div style="margin-top:7px;padding-top:7px;border-top:1px solid #182a40;font-family:'Space Mono',monospace;font-size:9px;">
+    <div style="display:grid;grid-template-columns:38px 60px 60px 52px;gap:2px 0;color:#4a6080;">
+      <div></div>
+      <div style="text-align:right;padding-right:8px;">필요</div>
+      <div style="text-align:right;padding-right:8px;">현재</div>
+      <div style="text-align:right;">여유</div>
+      <div style="color:#7ab8cc;">PLUS</div>
+      <div style="text-align:right;padding-right:8px;">${r.needPlus!=null?'+'+r.needPlus.toFixed(2):'-'}주</div>
+      <div style="text-align:right;padding-right:8px;">+${r.plusSpeed.toFixed(2)}주</div>
+      <div style="text-align:right;color:${Number(diffP)>=0?'#00e5ff':'#ef4444'}">${Number(diffP)>=0?'+':''}${diffP}</div>
+      <div style="color:#fb923c;">배당</div>
+      <div style="text-align:right;padding-right:8px;">${r.needDiv!=null?'+'+r.needDiv.toFixed(3):'-'}만</div>
+      <div style="text-align:right;padding-right:8px;">+${r.divSpeed.toFixed(3)}만</div>
+      <div style="text-align:right;color:${Number(diffD)>=0?'#00e5ff':'#ef4444'}">${Number(diffD)>=0?'+':''}${diffD}</div>
+    </div>
+    <div style="color:#283a50;margin-top:2px;font-size:8px;">단위: 주·만 / 거래일</div>
   </div>
 </div>`;
   }
@@ -1043,32 +1052,6 @@ function renderMonthlyCharts(filtered) {
     };
   }).filter(Boolean);
 
-  // 월별 목표 대비 달성률로 바 색상 결정 (초과달성이면 적색, 정상이면 시안, 미달이면 노랑/회색)
-  function barColorPlus(gain) {
-    if (!goals || !goals.monthGoal || !goals.monthGoal.plusSh) return 'rgba(0,229,255,.7)';
-    const pct = gain / goals.monthGoal.plusSh * 100;
-    if (pct >= 105) return 'rgba(239,68,68,.8)';
-    if (pct >= 95)  return 'rgba(0,229,255,.7)';
-    if (pct >= 85)  return 'rgba(251,191,36,.7)';
-    return 'rgba(107,114,128,.6)';
-  }
-  function barColorKodex(gain) {
-    if (!goals || !goals.monthGoal || !goals.monthGoal.kodexSh) return 'rgba(167,139,250,.7)';
-    const pct = gain / goals.monthGoal.kodexSh * 100;
-    if (pct >= 105) return 'rgba(239,68,68,.8)';
-    if (pct >= 95)  return 'rgba(167,139,250,.7)';
-    if (pct >= 85)  return 'rgba(251,191,36,.7)';
-    return 'rgba(107,114,128,.6)';
-  }
-  function barColorDiv(gain) {
-    if (!goals || !goals.monthGoal || !goals.monthGoal.div) return 'rgba(251,146,60,.7)';
-    const pct = gain / goals.monthGoal.div * 100;
-    if (pct >= 105) return 'rgba(239,68,68,.8)';
-    if (pct >= 95)  return 'rgba(251,146,60,.7)';
-    if (pct >= 85)  return 'rgba(251,191,36,.7)';
-    return 'rgba(107,114,128,.6)';
-  }
-
   wrap.innerHTML = '';
 
   // 수량 차트
@@ -1082,32 +1065,14 @@ function renderMonthlyCharts(filtered) {
     data: {
       labels: monthData.map(d => d.label),
       datasets: [
-        {
-          label: 'PLUS',
-          data: monthData.map(d => d.plusGain),
-          backgroundColor: monthData.map(d => barColorPlus(d.plusGain)),
-          borderColor: monthData.map(d => barColorPlus(d.plusGain).replace('.8)','.1)').replace('.7)','.1)')),
-          borderWidth: 1, borderRadius: 4
-        },
-        {
-          label: 'KODEX',
-          data: monthData.map(d => d.kodexGain),
-          backgroundColor: monthData.map(d => barColorKodex(d.kodexGain)),
-          borderColor: monthData.map(d => barColorKodex(d.kodexGain).replace('.8)','.1)').replace('.7)','.1)')),
-          borderWidth: 1, borderRadius: 4
-        }
+        { label:'PLUS',  data: monthData.map(d => d.plusGain),  backgroundColor:'rgba(0,229,255,.7)',   borderColor:'#00e5ff', borderWidth:1, borderRadius:4 },
+        { label:'KODEX', data: monthData.map(d => d.kodexGain), backgroundColor:'rgba(167,139,250,.7)', borderColor:'#a78bfa', borderWidth:1, borderRadius:4 }
       ]
     },
     options: {
       responsive: true,
       plugins: {
-        legend:  { display:true, labels:{ color:'#e2e8f0', font:{size:10}, boxWidth:12,
-          generateLabels: () => [
-            { text:'PLUS',  fillStyle:'rgba(0,229,255,.7)',   strokeStyle:'transparent', lineWidth:0 },
-            { text:'KODEX', fillStyle:'rgba(167,139,250,.7)', strokeStyle:'transparent', lineWidth:0 },
-            { text:'초과달성', fillStyle:'rgba(239,68,68,.8)', strokeStyle:'transparent', lineWidth:0 }
-          ]
-        }},
+        legend:  { display:true, labels:{ color:'#e2e8f0', font:{size:10}, boxWidth:12 } },
         tooltip: { backgroundColor:'#0c1525', titleColor:'#e2e8f0', bodyColor:'#e2e8f0',
           callbacks: { label: c => ` ${c.dataset.label} +${c.parsed.y}주` } }
       },
@@ -1131,7 +1096,7 @@ function renderMonthlyCharts(filtered) {
       datasets: [{
         label: '배당 증가',
         data: monthData.map(d => +d.divGain.toFixed(2)),
-        backgroundColor: monthData.map(d => barColorDiv(d.divGain)),
+        backgroundColor: 'rgba(251,146,60,.7)',
         borderColor: '#fb923c', borderWidth: 1, borderRadius: 4
       }]
     },
