@@ -1,4 +1,4 @@
-<!DOCTYPE html>테스터본
+<!DOCTYPE html>테스터본1
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -441,7 +441,8 @@ function onQSInput() {
 
   const saveMatch = raw.match(/SAVE::(\{[\s\S]*?\})/);
 
-const divMatch = raw.match(/DIV::(\{[\s\S]*?\})/);
+const divMatch = raw.match(/DIV::\s*(\{[\s\S]*?\})/);
+
 if (divMatch) {
   try {
     const d = JSON.parse(divMatch[1]);
@@ -513,19 +514,79 @@ function quickSave() {
     msg.push('목표 업데이트 🎯');
   }
 
-if (qsParsed.div) {
-  const d = qsParsed.div;
+  // ✅ 배당 저장
+  if (qsParsed.div) {
+    const d = qsParsed.div;
 
-  let divs = JSON.parse(localStorage.getItem('divs') || '[]');
+    let divsRaw = localStorage.getItem('divs');
+    let divs;
 
+    try {
+      divs = divsRaw ? JSON.parse(divsRaw) : [];
+      if (!Array.isArray(divs)) divs = [];
+    } catch(e) {
+      divs = [];
+    }
 
-// 수정
-divs.push({
+    const idx = divs.findIndex(x => x.date === d.date);
+
+    const newData = {
+      date: d.date,
+      amount: d.amount || 0,
+      plusDiv: d.plusDiv || 0,
+      kodexDiv: d.kodexDiv || 0
+    };
+
+    if (idx >= 0) divs[idx] = newData;
+    else divs.push(newData);
+
+    localStorage.setItem('divs', JSON.stringify(divs));
+
+    msg.push('배당 저장 💰');
+  }
+
+  // ✅ UI 초기화 (여기 유지)
+  document.getElementById('qs-input').value = '';
+  document.getElementById('qs-preview').style.display = 'none';
+  document.getElementById('qs-goal-preview').style.display = 'none';
+  document.getElementById('btn-qs').disabled = true;
+  document.getElementById('btn-qs').textContent = '⚡ 바로 저장';
+  qsParsed = null;
+
+  // ✅ ⭐⭐⭐ 여기 핵심 (무조건 이 위치)
+  renderDividendChart('2026');
+  renderReinvestChart();
+
+  const impact = getReinvestImpact();
+  document.getElementById('impact').innerHTML = `
+    재투자 효과: +${impact.diff.toLocaleString()}원 
+    (${impact.rate.toFixed(2)}%)
+  `;
+
+  renderAll();
+
+  toast(msg.join(' · '));
+}
+
+// 👉 중복 방지 (같은 날짜 덮어쓰기)
+const idx = divs.findIndex(x => x.date === d.date);
+
+const newData = {
   date: d.date,
-  amount: d.amount || d.div || 0
-});
+  amount: d.amount || 0,
+  plusDiv: d.plusDiv || 0,
+  kodexDiv: d.kodexDiv || 0
+};
 
-  localStorage.setItem('divs', JSON.stringify(divs));
+if (idx >= 0) {
+  divs[idx] = newData;
+} else {
+  divs.push(newData);
+}
+
+localStorage.setItem('divs', JSON.stringify(divs));
+
+console.log('저장된 divs:', divs);
 
   msg.push('배당 저장 💰');
 
