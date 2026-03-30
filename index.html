@@ -1,4 +1,4 @@
-<!DOCTYPE html>테스터본
+<!DOCTYPE html>테스터본1
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -1557,7 +1557,9 @@ function renderDividendChart(year){
   const kodexData = labels.map(m=>data[m].kodex);
   const otherData = labels.map(m=>data[m].other);
 
-  new Chart(ctx,{
+  if (charts.divChart) charts.divChart.destroy();
+
+  charts.divChart = new Chart(ctx,{
     type:'bar',
     data:{
       labels: labels.map(m=>`${parseInt(m)}월`),
@@ -1581,10 +1583,48 @@ function renderDividendChart(year){
     },
     options:{
       responsive:true,
+      interaction:{
+        mode:'index',
+        intersect:false
+      },
+      plugins:{
+        legend:{
+          position:'top',
+          labels:{
+            font:{ size:14 }
+          }
+        },
+        tooltip:{
+          callbacks:{
+            label:function(ctx){
+              const i = ctx.dataIndex;
+
+              const total =
+                plusData[i] +
+                kodexData[i] +
+                otherData[i];
+
+              const value = ctx.raw;
+              const percent = total ? ((value/total)*100).toFixed(1) : 0;
+
+              return `${ctx.dataset.label}: ${value.toLocaleString()}원 (${percent}%)`;
+            }
+          }
+        }
+      },
       scales:{
-        x:{ stacked:true },
-        y:{ stacked:true }
-      }
+        x:{
+          stacked:true
+        },
+        y:{
+          stacked:true,
+          ticks:{
+            callback:v => v.toLocaleString() + '원'
+          }
+        }
+      },
+      categoryPercentage:0.6,
+      barPercentage:0.7
     }
   });
 }
@@ -1722,33 +1762,6 @@ let selectedYear = null;
     });
 }
 
-function renderDividendChart(year) {
-  const ctx = document.getElementById('divChart');
-  if (!ctx) return;
-
-  let divs = JSON.parse(localStorage.getItem('divs') || '[]');
-
-  if (!divs.length) return;
-
-  const filtered = divs.filter(d => d.date.startsWith(year));
-
-  const labels = filtered.map(d => d.date);
-  const data = filtered.map(d => d.amount || 0);
-
-  if (charts.divChart) charts.divChart.destroy();
-
-  charts.divChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        label: '배당금',
-        data
-      }]
-    }
-  });
-}
-
 function renderReinvestChart() {
   const ctx = document.getElementById('reinvestChart');
   if (!ctx) return;
@@ -1802,6 +1815,31 @@ function getReinvestImpact() {
     diff: reinvest - noReinvest,
     rate: noReinvest ? ((reinvest - noReinvest) / noReinvest * 100) : 0
   };
+}
+
+function groupByMonth(divs) {
+  const map = {};
+
+  divs.forEach(d => {
+    const month = d.date.slice(0, 7); // YYYY-MM
+
+    if (!map[month]) {
+      map[month] = {
+        plus: 0,
+        kodex: 0,
+        etc: 0
+      };
+    }
+
+    map[month].plus += d.plusDiv || 0;
+    map[month].kodex += d.kodexDiv || 0;
+
+    // 기타 (+@)
+    const etc = (d.amount || 0) - (d.plusDiv || 0) - (d.kodexDiv || 0);
+    map[month].etc += etc > 0 ? etc : 0;
+  });
+
+  return map;
 }
 
 renderAll();
