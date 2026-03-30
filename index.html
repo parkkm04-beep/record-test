@@ -1,4 +1,4 @@
-<!DOCTYPE html>테스터본1
+<!DOCTYPE html>테스터본
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -566,54 +566,6 @@ function quickSave() {
   renderAll();
 
   toast(msg.join(' · '));
-}
-
-// 👉 중복 방지 (같은 날짜 덮어쓰기)
-const idx = divs.findIndex(x => x.date === d.date);
-
-const newData = {
-  date: d.date,
-  amount: d.amount || 0,
-  plusDiv: d.plusDiv || 0,
-  kodexDiv: d.kodexDiv || 0
-};
-
-if (idx >= 0) {
-  divs[idx] = newData;
-} else {
-  divs.push(newData);
-}
-
-localStorage.setItem('divs', JSON.stringify(divs));
-
-console.log('저장된 divs:', divs);
-
-  msg.push('배당 저장 💰');
-
-toast(msg.join(' · '));
-
-renderAll();
-
-}
-
- 
-  document.getElementById('qs-input').value = '';
-  document.getElementById('qs-preview').style.display = 'none';
-  document.getElementById('qs-goal-preview').style.display = 'none';
-  document.getElementById('btn-qs').disabled = true;
-  document.getElementById('btn-qs').textContent = '⚡ 바로 저장';
-  qsParsed = null;
-
-renderDividendChart('2026');
-renderReinvestChart();
-
-const impact = getReinvestImpact();
-document.getElementById('impact').innerHTML = `
-  재투자 효과: +${impact.diff.toLocaleString()}원 
-  (${impact.rate.toFixed(2)}%)
-`;
-
-  renderAll();
 }
 
 // ────────────────────────────────────────────────
