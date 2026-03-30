@@ -1,4 +1,4 @@
-<!DOCTYPE html>테스터본1
+<!DOCTYPE html>테스터본
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -518,7 +518,12 @@ if (qsParsed.div) {
 
   let divs = JSON.parse(localStorage.getItem('divs') || '[]');
 
-  divs.push(d);
+
+// 수정
+divs.push({
+  date: d.date,
+  amount: d.amount || d.div || 0
+});
 
   localStorage.setItem('divs', JSON.stringify(divs));
 
@@ -1702,6 +1707,88 @@ let selectedYear = null;
         });
       }
     });
+}
+
+function renderDividendChart(year) {
+  const ctx = document.getElementById('divChart');
+  if (!ctx) return;
+
+  let divs = JSON.parse(localStorage.getItem('divs') || '[]');
+
+  if (!divs.length) return;
+
+  const filtered = divs.filter(d => d.date.startsWith(year));
+
+  const labels = filtered.map(d => d.date);
+  const data = filtered.map(d => d.amount || 0);
+
+  if (charts.divChart) charts.divChart.destroy();
+
+  charts.divChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: '배당금',
+        data
+      }]
+    }
+  });
+}
+
+function renderReinvestChart() {
+  const ctx = document.getElementById('reinvestChart');
+  if (!ctx) return;
+
+  let divs = JSON.parse(localStorage.getItem('divs') || '[]');
+
+  if (!divs.length) return;
+
+  let noReinvest = 0;
+  let reinvest = 0;
+
+  const labels = [];
+  const noArr = [];
+  const reinvestArr = [];
+
+  divs.forEach(d => {
+    noReinvest += d.amount || 0;
+    reinvest += (d.amount || 0) * 1.02; // 재투자 가정
+
+    labels.push(d.date);
+    noArr.push(noReinvest);
+    reinvestArr.push(reinvest);
+  });
+
+  if (charts.reinvestChart) charts.reinvestChart.destroy();
+
+  charts.reinvestChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: '재투자 없음', data: noArr },
+        { label: '재투자', data: reinvestArr }
+      ]
+    }
+  });
+}
+
+function getReinvestImpact() {
+  let divs = JSON.parse(localStorage.getItem('divs') || '[]');
+
+  let noReinvest = 0;
+  let reinvest = 0;
+
+  divs.forEach(d => {
+    noReinvest += d.amount || 0;
+    reinvest += (d.amount || 0) * 1.02;
+  });
+
+  return {
+    diff: reinvest - noReinvest,
+    rate: noReinvest ? ((reinvest - noReinvest) / noReinvest * 100) : 0
+  };
 }
 
 renderAll();
