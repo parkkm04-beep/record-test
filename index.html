@@ -158,6 +158,19 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
 
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .fade-in{animation:fadeUp .3s ease;}
+
+#divChart, #reinvestChart {
+  width:100%;
+  max-height:260px;
+}
+
+.card {
+  margin-top:20px;
+  padding:16px;
+  background:#1e1e1e;
+  border-radius:12px;
+}
+
 </style>
 </head>
 <body>
@@ -281,6 +294,16 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
 <div id="log-list-month-hidden" class="goal-hidden-list"></div>
     <div class="empty-state" id="empty-month" style="display:none">이 달 기록이 없어요.</div>
   </div>
+
+<div class="card">
+  <h3>📊 배당 분석</h3>
+
+  <canvas id="divChart" style="margin-top:12px;"></canvas>
+
+  <canvas id="reinvestChart" style="margin-top:20px;"></canvas>
+
+  <div id="impact" style="margin-top:12px; font-weight:600;"></div>
+</div>
 
   <div class="sec">백업 / 복원</div>
   <div class="backup-panel">
@@ -514,6 +537,16 @@ renderAll();
   document.getElementById('btn-qs').disabled = true;
   document.getElementById('btn-qs').textContent = '⚡ 바로 저장';
   qsParsed = null;
+
+renderDividendChart('2026');
+renderReinvestChart();
+
+const impact = getReinvestImpact();
+document.getElementById('impact').innerHTML = `
+  재투자 효과: +${impact.diff.toLocaleString()}원 
+  (${impact.rate.toFixed(2)}%)
+`;
+
   renderAll();
 }
 
@@ -1472,6 +1505,203 @@ function calcCompound(monthDataList, plusPrice) {
   });
 
   return totalShares;
+}
+
+function getYearlyDivData(year){
+  const result = {};
+
+  records.forEach(r=>{
+    if(!r.divData) return;
+
+    const [y,m] = r.date.split('-');
+    if(y !== year) return;
+
+    if(!result[m]){
+      result[m] = { plus:0, kodex:0, other:0 };
+    }
+
+    const d = r.divData;
+
+    result[m].plus += d.plusDiv || 0;
+    result[m].kodex += d.kodexDiv || 0;
+    result[m].other += (d.amount - d.plusDiv - d.kodexDiv) || 0;
+  });
+
+  return result;
+}
+
+function renderDividendChart(year){
+  const ctx = document.getElementById('divChart').getContext('2d');
+  const data = getYearlyDivData(year);
+
+  const labels = Object.keys(data).sort();
+  const plusData = labels.map(m=>data[m].plus);
+  const kodexData = labels.map(m=>data[m].kodex);
+  const otherData = labels.map(m=>data[m].other);
+
+  new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels: labels.map(m=>`${parseInt(m)}월`),
+      datasets:[
+        {
+          label:'PLUS',
+          data: plusData,
+          backgroundColor:'#4caf50'
+        },
+        {
+          label:'KODEX',
+          data: kodexData,
+          backgroundColor:'#2196f3'
+        },
+        {
+          label:'+@',
+          data: otherData,
+          backgroundColor:'#9e9e9e'
+        }
+      ]
+    },
+    options:{
+      responsive:true,
+      scales:{
+        x:{ stacked:true },
+        y:{ stacked:true }
+      }
+    }
+  });
+}
+
+function simulateReinvest(){
+  let base = 0;
+  let reinvest = 0;
+
+  const history = [];
+
+  records
+    .sort((a,b)=>a.date.localeCompare(b.date))
+    .forEach(r=>{
+      base = r.total;
+
+      const div = r.divData?.amount || 0;
+
+      // 재투자: PLUS 가격으로 매수
+      const price = r.plusP || 1;
+      const shares = div / price;
+
+      reinvest += div;
+      reinvest *= (r.plusP / price); // 가격 상승 반영
+
+      history.push({
+        date:r.date,
+        base,
+        reinvest: base + reinvest
+      });
+    });
+
+  return history;
+}
+
+function renderReinvestChart(){
+  const ctx = document.getElementById('reinvestChart').getContext('2d');
+  const data = simulateReinvest();
+
+  new Chart(ctx,{
+    type:'line',
+    data:{
+      labels: data.map(d=>d.date),
+      datasets:[
+        {
+          label:'재투자 없음',
+          data: data.map(d=>d.base),
+          borderColor:'#888'
+        },
+        {
+          label:'재투자',
+          data: data.map(d=>d.reinvest),
+          borderColor:'#ff9800'
+        }
+      ]
+    }
+  });
+}
+
+function getReinvestImpact(){
+  const data = simulateReinvest();
+  const last = data[data.length-1];
+
+  const diff = last.reinvest - last.base;
+  const rate = (diff / last.base) * 100;
+
+  return { diff, rate };
+}
+
+function renderMonthSelector(){
+  const scroll=document.getElementById('month-scroll');
+  scroll.innerHTML='';
+
+  const allBtn=document.createElement('button');
+  allBtn.className='month-btn all-btn'+(selectedMonth==='all'?' active':'');
+  allBtn.textContent='전체';
+  allBtn.onclick=()=>{
+    selectedMonth='all';
+    selectedYear=null;
+    renderMonthSelector();
+    showSection('all');
+  };
+  scroll.appendChild(allBtn);
+
+  // 🔥 년도별 데이터 만들기
+  const data = {};
+
+  records.forEach(r=>{
+    const [y,m]=r.date.split('-');
+    if(!data[y]) data[y]=new Set();
+    data[y].add(m);
+  });
+
+  Object.keys(data)
+    .sort((a,b)=>b-a)
+    .forEach(year=>{
+      const isOpen = selectedYear === year;
+
+      const yBtn=document.createElement('button');
+      yBtn.className='month-btn'+(isOpen?' active':'');
+      yBtn.textContent=`${year} ${isOpen?'▼':'▶'}`;
+
+      // ✅ 여기다 들어가는거다
+      yBtn.onclick=()=>{
+        selectedYear = isOpen ? null : year;
+        selectedMonth='all';
+let selectedYear = null;
+
+        renderMonthSelector();
+
+        // 🔥 여기
+        renderDividendChart(year);
+      };
+
+      scroll.appendChild(yBtn);
+
+      if(isOpen){
+        [...data[year]].sort().forEach(m=>{
+          const ym=`${year}-${m}`;
+
+          const mBtn=document.createElement('button');
+          mBtn.className='month-btn'+(selectedMonth===ym?' active':'');
+          mBtn.style.marginLeft='10px';
+          mBtn.textContent=`${parseInt(m)}월`;
+
+          mBtn.onclick=()=>{
+            selectedMonth=ym;
+            renderMonthSelector();
+            showSection('month');
+            renderMonthSection(ym);
+          };
+
+          scroll.appendChild(mBtn);
+        });
+      }
+    });
 }
 
 renderAll();
