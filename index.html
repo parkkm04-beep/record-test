@@ -1,4 +1,4 @@
-<!DOCTYPE html>테스터본1
+<!DOCTYPE html>테스터본
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -169,6 +169,31 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
   padding:16px;
   background:#1e1e1e;
   border-radius:12px;
+}
+
+.card {
+  margin-top:20px;
+  padding:18px;
+  border-radius:16px;
+  background:linear-gradient(145deg,#0f172a,#1e293b);
+  border:1px solid rgba(0,229,255,0.15);
+  box-shadow:0 10px 30px rgba(0,0,0,0.6);
+}
+
+.card h3 {
+  font-size:14px;
+  margin-bottom:10px;
+  color:#00e5ff;
+}
+
+#impact {
+  margin-top:14px;
+  padding:10px;
+  border-radius:10px;
+  background:rgba(0,229,255,0.08);
+  border:1px solid rgba(0,229,255,0.2);
+  color:#00e5ff;
+  font-family:'Space Mono',monospace;
 }
 
 </style>
@@ -1390,7 +1415,18 @@ function toast(msg, isErr = false) {
 // ────────────────────────────────────────────────
 // 초기화
 // ────────────────────────────────────────────────
+
 loadData();
+
+// 🔥 추가
+renderDividendChart(new Date().getFullYear().toString());
+renderReinvestChart();
+
+const impact = getReinvestImpact();
+document.getElementById('impact').innerHTML = `
+  재투자 효과: +${impact.diff.toLocaleString()}원 
+  (${impact.rate.toFixed(2)}%)
+`;
 
 if (records.length) {
   const years = [...new Set(records.map(r => r.date.slice(0,4)))].sort();
@@ -1548,83 +1584,43 @@ function getYearlyDivData(year){
   return result;
 }
 
-function renderDividendChart(year){
-  const ctx = document.getElementById('divChart').getContext('2d');
-  const data = getYearlyDivData(year);
+function renderDividendChart(year) {
+  const ctx = document.getElementById('divChart');
+  if (!ctx) return;
 
-  const labels = Object.keys(data).sort();
-  const plusData = labels.map(m=>data[m].plus);
-  const kodexData = labels.map(m=>data[m].kodex);
-  const otherData = labels.map(m=>data[m].other);
+  let divs = JSON.parse(localStorage.getItem('divs') || '[]');
+  if (!Array.isArray(divs) || !divs.length) return;
 
-  if (charts.divChart) charts.divChart.destroy();
+  const filtered = divs.filter(d => {
+    if (!d.date) return false;
+    return d.date.substring(0,4) === String(year);
+  });
 
-  charts.divChart = new Chart(ctx,{
-    type:'bar',
-    data:{
-      labels: labels.map(m=>`${parseInt(m)}월`),
-      datasets:[
-        {
-          label:'PLUS',
-          data: plusData,
-          backgroundColor:'#4caf50'
-        },
-        {
-          label:'KODEX',
-          data: kodexData,
-          backgroundColor:'#2196f3'
-        },
-        {
-          label:'+@',
-          data: otherData,
-          backgroundColor:'#9e9e9e'
-        }
-      ]
+  if (!filtered.length) return;
+
+  const labels = filtered.map(d => d.date);
+  const data = filtered.map(d => Number(d.amount) || 0);
+
+  if (charts.div) charts.div.destroy();
+
+  charts.div = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: '배당금',
+        data,
+        borderWidth: 2
+      }]
     },
-    options:{
-      responsive:true,
-      interaction:{
-        mode:'index',
-        intersect:false
-      },
+    options: {
       plugins:{
-        legend:{
-          position:'top',
-          labels:{
-            font:{ size:14 }
-          }
-        },
-        tooltip:{
-          callbacks:{
-            label:function(ctx){
-              const i = ctx.dataIndex;
-
-              const total =
-                plusData[i] +
-                kodexData[i] +
-                otherData[i];
-
-              const value = ctx.raw;
-              const percent = total ? ((value/total)*100).toFixed(1) : 0;
-
-              return `${ctx.dataset.label}: ${value.toLocaleString()}원 (${percent}%)`;
-            }
-          }
-        }
+        legend:{ labels:{ color:'#e2e8f0' } }
       },
       scales:{
-        x:{
-          stacked:true
-        },
-        y:{
-          stacked:true,
-          ticks:{
-            callback:v => v.toLocaleString() + '원'
-          }
-        }
-      },
-      categoryPercentage:0.6,
-      barPercentage:0.7
+        x:{ ticks:{ color:'#94a3b8' } },
+        y:{ ticks:{ color:'#94a3b8' } }
+      }
     }
   });
 }
