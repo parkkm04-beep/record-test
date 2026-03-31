@@ -1,4 +1,4 @@
-<!DOCTYPE html>테스터본
+<!DOCTYPE html>테스터본1
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -326,6 +326,8 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
   <canvas id="divChart" style="margin-top:12px;"></canvas>
 
   <canvas id="reinvestChart" style="margin-top:20px;"></canvas>
+
+<div id="divRatio"></div>
 
   <div id="impact" style="margin-top:12px; font-weight:600;"></div>
 </div>
@@ -1598,31 +1600,75 @@ function renderDividendChart(year) {
 
   if (!filtered.length) return;
 
-  const labels = filtered.map(d => d.date);
-  const data = filtered.map(d => Number(d.amount) || 0);
+  // 🔥 월별 집계
+const monthly = {};
+
+filtered.forEach(d => {
+  const ym = d.date.slice(0,7); // 2026-03
+
+  if (!monthly[ym]) {
+    monthly[ym] = {
+      total:0,
+      plus:0,
+      kodex:0,
+      extra:0
+    };
+  }
+
+  monthly[ym].total += Number(d.amount) || 0;
+  monthly[ym].plus += Number(d.plusDiv) || 0;
+  monthly[ym].kodex += Number(d.kodexDiv) || 0;
+});
+
+// +@ 계산
+Object.keys(monthly).forEach(m => {
+  monthly[m].extra =
+    monthly[m].total -
+    monthly[m].plus -
+    monthly[m].kodex;
+});
+
+const labels = Object.keys(monthly);
+
+const plusData = labels.map(m => monthly[m].plus);
+const kodexData = labels.map(m => monthly[m].kodex);
+const extraData = labels.map(m => monthly[m].extra);
 
   if (charts.div) charts.div.destroy();
 
   charts.div = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        label: '배당금',
-        data,
-        borderWidth: 2
-      }]
-    },
-    options: {
-      plugins:{
-        legend:{ labels:{ color:'#e2e8f0' } }
+  type: 'bar',
+  data: {
+    labels,
+    datasets: [
+      {
+        label: 'PLUS',
+        data: plusData,
+        backgroundColor: '#22c55e'
       },
-      scales:{
-        x:{ ticks:{ color:'#94a3b8' } },
-        y:{ ticks:{ color:'#94a3b8' } }
+      {
+        label: 'KODEX',
+        data: kodexData,
+        backgroundColor: '#3b82f6'
+      },
+      {
+        label: '+@',
+        data: extraData,
+        backgroundColor: '#94a3b8'
       }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins:{
+      legend:{ labels:{ color:'#e2e8f0' } }
+    },
+    scales:{
+      x:{ stacked:true, ticks:{ color:'#94a3b8' }},
+      y:{ stacked:true, ticks:{ color:'#94a3b8' }}
     }
-  });
+  }
+});
 }
 
 function simulateReinvest(){
@@ -1836,6 +1882,26 @@ function groupByMonth(divs) {
   });
 
   return map;
+}
+
+function renderDividendRatio(monthly) {
+  const last = Object.keys(monthly).pop();
+  if (!last) return;
+
+  const m = monthly[last];
+  const total = m.total || 1;
+
+  const plusPct = (m.plus / total * 100).toFixed(1);
+  const kodexPct = (m.kodex / total * 100).toFixed(1);
+  const extraPct = (m.extra / total * 100).toFixed(1);
+
+  document.getElementById('divRatio').innerHTML = `
+    <div style="display:flex;gap:10px;font-size:12px;margin-top:10px;">
+      <span style="color:#22c55e">PLUS ${plusPct}%</span>
+      <span style="color:#3b82f6">KODEX ${kodexPct}%</span>
+      <span style="color:#94a3b8">+@ ${extraPct}%</span>
+    </div>
+  `;
 }
 
 renderAll();
