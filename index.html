@@ -1,4 +1,4 @@
-<!DOCTYPE html>테스터본1
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -54,7 +54,6 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .btn-qs:not(:disabled){background:linear-gradient(135deg,#065f46,#34d399);color:#000;}
 .btn-qs:disabled{background:#112035;color:#4a6080;cursor:not-allowed;}
 
-/* ── 아코디언 월별 셀렉터 ── */
 .month-nav{margin-bottom:16px;display:flex;flex-direction:column;gap:0;}
 .mn-all-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;border:1px solid #182a40;background:transparent;color:#4a6080;font-size:11px;font-weight:700;cursor:pointer;font-family:'Space Mono',monospace;transition:all .15s;margin-bottom:10px;align-self:flex-start;}
 .mn-all-btn:hover{color:#e2e8f0;border-color:#334a60;}
@@ -158,44 +157,6 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
 
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .fade-in{animation:fadeUp .3s ease;}
-
-#divChart, #reinvestChart {
-  width:100%;
-  max-height:260px;
-}
-
-.card {
-  margin-top:20px;
-  padding:16px;
-  background:#1e1e1e;
-  border-radius:12px;
-}
-
-.card {
-  margin-top:20px;
-  padding:18px;
-  border-radius:16px;
-  background:linear-gradient(145deg,#0f172a,#1e293b);
-  border:1px solid rgba(0,229,255,0.15);
-  box-shadow:0 10px 30px rgba(0,0,0,0.6);
-}
-
-.card h3 {
-  font-size:14px;
-  margin-bottom:10px;
-  color:#00e5ff;
-}
-
-#impact {
-  margin-top:14px;
-  padding:10px;
-  border-radius:10px;
-  background:rgba(0,229,255,0.08);
-  border:1px solid rgba(0,229,255,0.2);
-  color:#00e5ff;
-  font-family:'Space Mono',monospace;
-}
-
 </style>
 </head>
 <body>
@@ -209,7 +170,6 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
   <button class="tab" onclick="switchTab('records')">📋 기록 보기</button>
 </div>
 
-<!-- ── 입력 탭 ── -->
 <div id="tab-input">
   <div class="sec">사용법</div>
   <div class="guide-box">
@@ -264,7 +224,6 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
   </div>
 </div>
 
-<!-- ── 기록 탭 ── -->
 <div id="tab-records" style="display:none">
   <div class="stats-grid">
     <div class="stat-c"><div class="stat-v" style="color:#fbbf24" id="s-cnt">-</div><div class="stat-l">체크 횟수</div></div>
@@ -276,7 +235,6 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
   <div class="sec">월별 보기</div>
   <div class="month-nav" id="month-nav"></div>
 
-  <!-- 전체 섹션 -->
   <div id="section-all">
     <div class="sec">🎖️ 전역까지 달성도</div>
     <div class="discharge-section" id="discharge-section">
@@ -285,19 +243,10 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
     <div class="sec">월별 증가량</div>
     <div id="monthly-charts"></div>
     <div class="sec">전체 기록</div>
-    <div id="log-list-latest"></div>
-
-<div style="display:flex;justify-content:flex-end;margin-top:6px;">
-  <button class="expand-btn" id="log-expand-btn" onclick="toggleLogs(this)">
-    <span>전체 기록 보기</span><span class="arr">▼</span>
-  </button>
-</div>
-
-<div id="log-hidden-list" class="goal-hidden-list"></div>
+    <div id="log-list-all"></div>
     <div class="empty-state" id="empty-all" style="display:none">아직 저장된 기록이 없어요.</div>
   </div>
 
-  <!-- 월별 섹션 -->
   <div id="section-month" style="display:none">
     <div class="sec">📅 <span id="month-section-title">-</span> 달성도</div>
     <div id="month-goal-card" class="month-goal-card">
@@ -308,29 +257,9 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
       <canvas id="month-inner-chart" height="140"></canvas>
     </div>
     <div class="sec">기록 목록</div>
-    <div id="log-list-month-latest"></div>
-
-<div style="display:flex;justify-content:flex-end;margin-top:6px;">
-  <button class="expand-btn" onclick="toggleLogs(this)">
-    <span>전체 기록 보기</span><span class="arr">▼</span>
-  </button>
-</div>
-
-<div id="log-list-month-hidden" class="goal-hidden-list"></div>
+    <div id="log-list-month"></div>
     <div class="empty-state" id="empty-month" style="display:none">이 달 기록이 없어요.</div>
   </div>
-
-<div class="card">
-  <h3>📊 배당 분석</h3>
-
-  <canvas id="divChart" style="margin-top:12px;"></canvas>
-
-  <canvas id="reinvestChart" style="margin-top:20px;"></canvas>
-
-<div id="divRatio"></div>
-
-  <div id="impact" style="margin-top:12px; font-weight:600;"></div>
-</div>
 
   <div class="sec">백업 / 복원</div>
   <div class="backup-panel">
@@ -350,7 +279,6 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
-// ── 상수 ──
 const SKEY = 'invest-logs-v6';
 const GKEY = 'invest-goals-v1';
 let records = [];
@@ -358,30 +286,22 @@ let goals = null;
 let charts = {};
 let qsParsed = null;
 
-// 선택 상태: { type:'all'|'year'|'month', year:null|'2026', ym:null|'2026-03' }
 let nav = { type:'all', year:null, ym:null };
 
 document.getElementById('inp-date').value = new Date().toISOString().slice(0,10);
 
-// ────────────────────────────────────────────────
-// 한국 주식시장 공휴일 (2025~2027)
-// 출처: KRX 시장 휴장일 기준
-// ────────────────────────────────────────────────
 const KR_HOLIDAYS = new Set([
-  // 2025
   '2025-01-01','2025-01-27','2025-01-28','2025-01-29','2025-01-30',
   '2025-03-01','2025-05-01','2025-05-05','2025-05-06',
   '2025-06-06','2025-08-15',
   '2025-10-03','2025-10-05','2025-10-06','2025-10-07','2025-10-08','2025-10-09',
   '2025-12-25',
-  // 2026
   '2026-01-01','2026-01-28','2026-01-29','2026-01-30',
   '2026-03-01','2026-03-02','2026-05-01','2026-05-05','2026-05-25',
   '2026-06-06','2026-08-15','2026-08-17',
   '2026-09-24','2026-09-25','2026-09-26',
   '2026-10-03','2026-10-05','2026-10-09',
   '2026-12-25',
-  // 2027
   '2027-01-01','2027-02-07','2027-02-08','2027-02-09','2027-02-10',
   '2027-03-01','2027-05-01','2027-05-05','2027-05-13',
   '2027-06-06','2027-08-15','2027-08-16',
@@ -390,12 +310,6 @@ const KR_HOLIDAYS = new Set([
   '2027-12-25','2027-12-27'
 ]);
 
-/**
- * 두 날짜 사이의 주식 거래 가능일 수를 계산한다.
- * from 당일은 포함하지 않고, to 당일도 포함하지 않는다.
- * (즉, from < 날짜 < to 인 거래일 수)
- * from === to 면 0 반환.
- */
 function countTradingDays(fromDate, toDate) {
   const start = new Date(fromDate);
   const end   = new Date(toDate);
@@ -406,9 +320,9 @@ function countTradingDays(fromDate, toDate) {
 
   let count = 0;
   const cur = new Date(start);
-  cur.setDate(cur.getDate() + 1); // from 다음날부터 시작
+  cur.setDate(cur.getDate() + 1);
   while (cur < end) {
-    const dow = cur.getDay(); // 0=일, 6=토
+    const dow = cur.getDay();
     if (dow !== 0 && dow !== 6) {
       const ymd = cur.toISOString().slice(0, 10);
       if (!KR_HOLIDAYS.has(ymd)) count++;
@@ -418,29 +332,20 @@ function countTradingDays(fromDate, toDate) {
   return count;
 }
 
-/**
- * 두 날짜 사이(양 끝 포함) 거래일 수 — 속도 계산용
- * from 당일과 to 당일 사이의 차이를 표현하기 위해
- * from 다음날 ~ to 당일까지 거래일 수를 반환.
- */
 function tradingDaySpan(fromDate, toDate) {
   return Math.max(1, countTradingDays(fromDate, toDate));
 }
 
-// ────────────────────────────────────────────────
-// 색상 / 라벨 헬퍼
-// 초과달성(≥105%)은 한국 주식 상승 색인 빨간계열로 표시
-// ────────────────────────────────────────────────
 function pctColor(pct, isFuture) {
   if (isFuture) {
     if (pct >= 80) return '#00e5ff';
     if (pct >= 50) return '#a78bfa';
     return '#4a6080';
   }
-  if (pct >= 105) return '#ef4444'; // 초과달성 — 한국 주식 상승색(적색)
-  if (pct >= 95)  return '#00e5ff'; // 정상 궤도
-  if (pct >= 85)  return '#fbbf24'; // 소폭 미달
-  return '#6b7280';                 // 계획 수정 필요
+  if (pct >= 105) return '#ef4444';
+  if (pct >= 95)  return '#00e5ff';
+  if (pct >= 85)  return '#fbbf24';
+  return '#6b7280';
 }
 
 function pctLabel(pct, isFuture) {
@@ -451,9 +356,6 @@ function pctLabel(pct, isFuture) {
   return '계획 수정 필요 ❗';
 }
 
-// ────────────────────────────────────────────────
-// 빠른 저장 입력 파싱
-// ────────────────────────────────────────────────
 function onQSInput() {
   const raw = document.getElementById('qs-input').value.trim();
   const btn = document.getElementById('btn-qs');
@@ -467,18 +369,6 @@ function onQSInput() {
   const result = {};
 
   const saveMatch = raw.match(/SAVE::(\{[\s\S]*?\})/);
-
-const divMatch = raw.match(/DIV::\s*(\{[\s\S]*?\})/);
-
-if (divMatch) {
-  try {
-    const d = JSON.parse(divMatch[1]);
-    result.div = d;
-  } catch(e) {
-    console.warn('DIV parse error', e);
-  }
-}
-
   if (saveMatch) {
     try {
       const d = JSON.parse(saveMatch[1]);
@@ -501,13 +391,18 @@ if (divMatch) {
       if (d.discharge) {
         result.goal = d;
         goalPrev.style.display = 'block';
-        const mg = d.monthGoal || {};
-        goalPrev.innerHTML = `🎯 목표 확인 · 전역: PLUS ${d.discharge.plusSh}주 / 배당 ${d.discharge.div}만 · 이번달: PLUS ${mg.plusSh || '-'}주`;
+        const curYm = new Date().toISOString().slice(0, 7);
+        const mg = d.monthGoal && d.monthGoal[curYm] ? d.monthGoal[curYm] : null;
+        if (mg) {
+          goalPrev.innerHTML = `🎯 목표 확인 · 전역: PLUS ${d.discharge.plusSh}주 / 배당 ${d.discharge.div}만 · 이번달: PLUS ${mg.plusSh || '-'}주`;
+        } else {
+          goalPrev.innerHTML = `🎯 목표 확인 · 전역: PLUS ${d.discharge.plusSh}주 / 배당 ${d.discharge.div}만`;
+        }
       }
     } catch(e) { console.warn('GOAL parse error', e); }
   }
 
-  if (result.save || result.goal || result.div) {
+  if (result.save || result.goal) {
     qsParsed = result;
     btn.disabled = false;
     if (result.save && result.goal) btn.textContent = '⚡ 기록 + 목표 동시 저장';
@@ -541,63 +436,16 @@ function quickSave() {
     msg.push('목표 업데이트 🎯');
   }
 
-  // ✅ 배당 저장
-  if (qsParsed.div) {
-    const d = qsParsed.div;
-
-    let divsRaw = localStorage.getItem('divs');
-    let divs;
-
-    try {
-      divs = divsRaw ? JSON.parse(divsRaw) : [];
-      if (!Array.isArray(divs)) divs = [];
-    } catch(e) {
-      divs = [];
-    }
-
-    const idx = divs.findIndex(x => x.date === d.date);
-
-    const newData = {
-      date: d.date,
-      amount: d.amount || 0,
-      plusDiv: d.plusDiv || 0,
-      kodexDiv: d.kodexDiv || 0
-    };
-
-    if (idx >= 0) divs[idx] = newData;
-    else divs.push(newData);
-
-    localStorage.setItem('divs', JSON.stringify(divs));
-
-    msg.push('배당 저장 💰');
-  }
-
-  // ✅ UI 초기화 (여기 유지)
+  toast(msg.join(' · '));
   document.getElementById('qs-input').value = '';
   document.getElementById('qs-preview').style.display = 'none';
   document.getElementById('qs-goal-preview').style.display = 'none';
   document.getElementById('btn-qs').disabled = true;
   document.getElementById('btn-qs').textContent = '⚡ 바로 저장';
   qsParsed = null;
-
-  // ✅ ⭐⭐⭐ 여기 핵심 (무조건 이 위치)
-  renderDividendChart('2026');
-  renderReinvestChart();
-
-  const impact = getReinvestImpact();
-  document.getElementById('impact').innerHTML = `
-    재투자 효과: +${impact.diff.toLocaleString()}원 
-    (${impact.rate.toFixed(2)}%)
-  `;
-
   renderAll();
-
-  toast(msg.join(' · '));
 }
 
-// ────────────────────────────────────────────────
-// 탭 전환
-// ────────────────────────────────────────────────
 function switchTab(t) {
   document.getElementById('tab-input').style.display   = t === 'input'   ? 'block' : 'none';
   document.getElementById('tab-records').style.display = t === 'records' ? 'block' : 'none';
@@ -606,9 +454,6 @@ function switchTab(t) {
   if (t === 'records') renderAll();
 }
 
-// ────────────────────────────────────────────────
-// 입력 폼
-// ────────────────────────────────────────────────
 function updatePreview() {
   const ps  = +document.getElementById('inp-plus-sh').value  || 0;
   const ks  = +document.getElementById('inp-kodex-sh').value || 0;
@@ -663,9 +508,6 @@ function loadData() {
   try { const g = localStorage.getItem(GKEY); if (g) goals   = JSON.parse(g); } catch(e) { goals   = null; }
 }
 
-// ────────────────────────────────────────────────
-// 계층형 월별 네비게이터
-// ────────────────────────────────────────────────
 function getYears()  { return [...new Set(records.map(r => r.date.slice(0,4)))].sort(); }
 function getMonths() { return [...new Set(records.map(r => r.date.slice(0,7)))].sort(); }
 
@@ -681,7 +523,6 @@ function renderMonthNav() {
   const latestYear = years[years.length - 1];
   const expandedYear = nav.type === 'all' ? latestYear : (nav.year || latestYear);
 
-  // 전체 버튼
   const allBtn = document.createElement('button');
   allBtn.className = 'mn-all-btn' + (nav.type === 'all' ? ' active' : '');
   allBtn.textContent = '전체';
@@ -693,7 +534,6 @@ function renderMonthNav() {
   };
   container.appendChild(allBtn);
 
-  // 년도별 아코디언 그룹 (최신 년도 위)
   [...years].reverse().forEach(yr => {
     const isExpanded = yr === expandedYear;
     const monthsInYear = months.filter(m => m.startsWith(yr));
@@ -751,9 +591,6 @@ function showSection(which) {
   document.getElementById('section-month').style.display = which === 'month' ? 'block' : 'none';
 }
 
-// ────────────────────────────────────────────────
-// 섹션별 렌더
-// ────────────────────────────────────────────────
 function renderAllContent() {
   let filtered = records;
   if (nav.type === 'year' && nav.year) {
@@ -763,12 +600,7 @@ function renderAllContent() {
   if (nav.type === 'all') {
     renderDischarge();
     renderMonthlyCharts(filtered);
-    renderLogList(
-  document.getElementById('log-list-latest'),
-  document.getElementById('log-hidden-list'),
-  document.getElementById('empty-all'),
-  null
-);
+    renderLogList(document.getElementById('log-list-all'), document.getElementById('empty-all'), null);
   } else if (nav.type === 'year') {
     renderDischarge();
     renderMonthlyCharts(filtered);
@@ -780,17 +612,9 @@ function renderMonthSection(ym) {
   document.getElementById('month-section-title').textContent = ym.slice(5) + '월';
   renderMonthGoal(ym);
   renderMonthInnerChart(ym);
-  renderLogList(
-  document.getElementById('log-list-month-latest'),
-  document.getElementById('log-list-month-hidden'),
-  document.getElementById('empty-month'),
-  ym
-);
+  renderLogList(document.getElementById('log-list-month'), document.getElementById('empty-month'), ym);
 }
 
-// ────────────────────────────────────────────────
-// 전역 달성도 (진행도 바)
-// ────────────────────────────────────────────────
 function renderDischarge() {
   const sec = document.getElementById('discharge-section');
   const latest = records.length ? records[records.length - 1] : null;
@@ -889,18 +713,6 @@ function mkMini(label, color, cur, goal, unit, pct, isFuture) {
 </div>`;
 }
 
-// ────────────────────────────────────────────────
-// 달성 가능성 분석
-//
-// ★ 주식 거래일(주말·한국 공휴일 제외) 기준으로 계산
-//
-// 속도 계산:
-//   (최신 보유량 - 최초 보유량) ÷ 기록 기간 거래일 수
-//   → 하루(거래일 1일)당 평균 증가량
-//
-// 예상 달성:
-//   현재 보유량 + (목표일까지 남은 거래일 × 거래일당 속도) ≥ 목표
-// ────────────────────────────────────────────────
 function analyzeGoal() {
   if (!goals || !goals.discharge || records.length < 2) return '';
 
@@ -917,8 +729,8 @@ function analyzeGoal() {
     return new Date(d.getFullYear(), d.getMonth() + 1, 0);
   }
 
-  const privateDate  = endOfMonth(addMonths(enlistDate, 8));   // 일병 종료
-  const corporalDate = endOfMonth(addMonths(enlistDate, 14));  // 상병 종료
+  const privateDate  = endOfMonth(addMonths(enlistDate, 8));
+  const corporalDate = endOfMonth(addMonths(enlistDate, 14));
 
   const d = goals.discharge;
 
@@ -928,7 +740,6 @@ function analyzeGoal() {
     { name:'전역', date: dischargeDate, plusGoal: d.plusSh,                  kodexGoal: d.kodexSh,                  divGoal: d.div                    }
   ];
 
-  // milestones가 있으면 우선 사용
   if (goals.milestones && goals.milestones.length) {
     goals.milestones.forEach((ms, i) => {
       if (targets[i]) {
@@ -942,14 +753,13 @@ function analyzeGoal() {
   const first   = records[0];
   const last    = records[records.length - 1];
 
-  // ★ 주식 거래일 기준 속도 계산
   const tradingSpan = tradingDaySpan(first.date, last.date);
 
-  const plusSpeed  = (last.plusSh  - first.plusSh)  / tradingSpan; // 주/거래일
-  const kodexSpeed = (last.kodexSh - first.kodexSh) / tradingSpan; // 주/거래일
+  const plusSpeed  = (last.plusSh  - first.plusSh)  / tradingSpan;
+  const kodexSpeed = (last.kodexSh - first.kodexSh) / tradingSpan;
   const lastDiv    = (last.plusSh  * 156 + last.kodexSh  * 244) / 10000;
   const firstDiv   = (first.plusSh * 156 + first.kodexSh * 244) / 10000;
-  const divSpeed   = (lastDiv - firstDiv) / tradingSpan; // 만원/거래일
+  const divSpeed   = (lastDiv - firstDiv) / tradingSpan;
 
   const today = new Date();
   today.setHours(0,0,0,0);
@@ -960,12 +770,9 @@ function analyzeGoal() {
 
     const isPast = goalDate <= today;
 
-    // ★ 목표일까지 남은 거래일 수 (오늘 기준)
     const remainTD = isPast ? 0 : countTradingDays(today, goalDate);
-    // 단순 달력일도 D-표시용으로 계산
     const remainCalDays = Math.round((goalDate - today) / (1000*60*60*24));
 
-    // 현재 거래일 속도로 목표일까지 예상 달성값
     const projPlus  = last.plusSh  + plusSpeed  * remainTD;
     const projKodex = last.kodexSh + kodexSpeed * remainTD;
     const projDiv   = lastDiv      + divSpeed   * remainTD;
@@ -975,12 +782,10 @@ function analyzeGoal() {
     const isOkDiv   = projDiv   >= t.divGoal;
     const allOk     = isOkPlus && isOkKodex && isOkDiv;
 
-    // 현재 달성률
     const plusPct  = Math.round(last.plusSh  / t.plusGoal  * 100);
     const kodexPct = Math.round(last.kodexSh / t.kodexGoal * 100);
     const divPct   = Math.round(lastDiv      / t.divGoal   * 100);
 
-    // 목표일까지 필요한 거래일당 속도
     const needPlus  = remainTD > 0 ? (t.plusGoal  - last.plusSh)  / remainTD : null;
     const needKodex = remainTD > 0 ? (t.kodexGoal - last.kodexSh) / remainTD : null;
     const needDiv   = remainTD > 0 ? (t.divGoal   - lastDiv)      / remainTD : null;
@@ -1017,7 +822,6 @@ function analyzeGoal() {
 </div>`;
     }
 
-    // 미래 시점 — 거래일 기준 속도 차이
     const diffP = r.needPlus  != null ? (r.plusSpeed  - r.needPlus).toFixed(2)  : '∞';
     const diffK = r.needKodex != null ? (r.kodexSpeed - r.needKodex).toFixed(2) : '∞';
     const diffD = r.needDiv   != null ? (r.divSpeed   - r.needDiv).toFixed(3)   : '∞';
@@ -1081,9 +885,6 @@ function analyzeGoal() {
 </div>`;
 }
 
-// ────────────────────────────────────────────────
-// 이번 달 목표 달성도
-// ────────────────────────────────────────────────
 function renderMonthGoal(ym) {
   const card      = document.getElementById('month-goal-card');
   const monthRecs = records.filter(r => r.date.startsWith(ym));
@@ -1091,18 +892,18 @@ function renderMonthGoal(ym) {
   const latest = monthRecs[monthRecs.length - 1];
   const curDiv = (latest.plusSh * 156 + latest.kodexSh * 244) / 10000;
 
-  if (!goals || !goals.monthGoal) {
+  if (!goals || !goals.monthGoal || !goals.monthGoal[ym]) {
     card.innerHTML = '<div class="no-goal">🎯 GOAL:: 코드를 붙여넣으면 이 달 목표 달성도가 표시돼요</div>';
     return;
   }
-  const mg = goals.monthGoal;
+  const mg = goals.monthGoal[ym];
   const plusPct  = Math.round(latest.plusSh  / mg.plusSh * 100);
   const kodexPct = Math.round(latest.kodexSh / mg.kodexSh * 100);
   const divPct   = Math.round(curDiv         / mg.div    * 100);
 
   card.innerHTML = `<div class="mg-header">
   <div class="mg-title">📅 ${ym.slice(5)}월 목표</div>
-  <div style="font-size:10px;color:#4a6080;font-family:'Space Mono',monospace;">${mg.ym || ym} 기준</div>
+  <div style="font-size:10px;color:#4a6080;font-family:'Space Mono',monospace;">${ym} 기준</div>
 </div>
 <div class="mg-grid">
   ${mkMonthItem('PLUS',   '#00e5ff', latest.plusSh,       mg.plusSh,  '주', plusPct)}
@@ -1124,9 +925,6 @@ function mkMonthItem(label, color, cur, goal, unit, pct) {
 </div>`;
 }
 
-// ────────────────────────────────────────────────
-// 차트
-// ────────────────────────────────────────────────
 function renderMonthInnerChart(ym) {
   const recs = records.filter(r => r.date.startsWith(ym));
   const box  = document.getElementById('month-chart-box');
@@ -1186,7 +984,6 @@ function renderMonthlyCharts(filtered) {
 
   wrap.innerHTML = '';
 
-  // 수량 차트
   const r1 = document.createElement('div');
   r1.className = 'chart-box';
   r1.innerHTML = '<div class="chart-title" style="color:#e2e8f0">📦 종목별 수량 증가 (월별)</div><canvas id="mc-shares" height="140"></canvas>';
@@ -1215,7 +1012,6 @@ function renderMonthlyCharts(filtered) {
     }
   });
 
-  // 배당 차트
   const r2 = document.createElement('div');
   r2.className = 'chart-box';
   r2.innerHTML = '<div class="chart-title" style="color:#e2e8f0">📈 월 배당 증가액 (월별)</div><canvas id="mc-div" height="120"></canvas>';
@@ -1248,45 +1044,50 @@ function renderMonthlyCharts(filtered) {
   });
 }
 
-// ────────────────────────────────────────────────
-// 기록 목록
-// ────────────────────────────────────────────────
-
-function renderLogList(latestEl, hiddenEl, emptyEl, filterPrefix) {
+function renderLogList(listEl, emptyEl, filterPrefix) {
   let filtered = filterPrefix
     ? records.filter(r => r.date.startsWith(filterPrefix))
     : [...records];
 
-  if (!filtered.length) {
-    latestEl.innerHTML = '';
-    hiddenEl.innerHTML = '';
-    emptyEl.style.display = 'block';
-    return;
-  }
-
+  if (!filtered.length) { listEl.innerHTML = ''; emptyEl.style.display = 'block'; return; }
   emptyEl.style.display = 'none';
 
-  const reversed = [...filtered].reverse();
-  const latest = reversed.slice(0, 3); // 최신 3개
-const rest   = reversed.slice(3);    // 나머지
-
-  // 최신 3개
-  latestEl.innerHTML =
-  latest.map((r, i) => renderLogItem(r, i === 0)).join('');
-
-  // 나머지
-  hiddenEl.innerHTML = rest.map(r => renderLogItem(r)).join('');
-
-  // 버튼 표시
-  const btnWrap = hiddenEl.previousElementSibling;
-  if (btnWrap) {
-    btnWrap.style.display = rest.length ? 'flex' : 'none';
-  }
+  listEl.innerHTML = [...filtered].reverse().map(r => {
+    const globalIdx = records.indexOf(r);
+    const prev      = globalIdx > 0 ? records[globalIdx - 1] : null;
+    const md        = r.plusSh * 156 + r.kodexSh * 244;
+    const isLatest  = globalIdx === records.length - 1;
+    let delta = '';
+    if (prev) {
+      const dp = r.plusSh  - prev.plusSh;
+      const dk = r.kodexSh - prev.kodexSh;
+      const dd = md - (prev.plusSh*156 + prev.kodexSh*244);
+      const dt = r.total - prev.total;
+      delta = `<div class="log-delta">
+  <span class="ld ${dp>0?'ld-plus-up':dp<0?'ld-plus-dn':'ld-plus-neu'}">PLUS ${dp>=0?'+':''}${dp}주</span>
+  <span class="ld ${dk>0?'ld-kodex-up':dk<0?'ld-kodex-dn':'ld-kodex-neu'}">KODEX ${dk>=0?'+':''}${dk}주</span>
+  <span class="ld ${dd>0?'ld-div-up':dd<0?'ld-div-dn':'ld-div-neu'}">배당 ${dd>=0?'+':''}${(dd/10000).toFixed(2)}만</span>
+  <span class="ld ${dt>0?'ld-tot-up':dt<0?'ld-tot-dn':'ld-tot-neu'}">자산 ${dt>=0?'+':''}${(dt/10000).toFixed(0)}만</span>
+</div>`;
+    }
+    return `<div class="log-item ${isLatest?'latest':''}">
+  <button class="log-del" onclick="delRec('${r.date}')">✕</button>
+  <div class="log-top">
+    <span class="log-date">${r.date}</span>
+    ${isLatest ? '<span class="log-badge">LATEST</span>' : ''}
+  </div>
+  <div class="log-nums">
+    <div><div class="ln-l">PLUS</div><div class="ln-v" style="color:#00e5ff">${r.plusSh}주</div></div>
+    <div><div class="ln-l">KODEX</div><div class="ln-v" style="color:#a78bfa">${r.kodexSh}주</div></div>
+    <div><div class="ln-l">월배당</div><div class="ln-v" style="color:#fb923c">${(md/10000).toFixed(2)}만</div></div>
+    <div><div class="ln-l">총자산</div><div class="ln-v" style="color:#fbbf24">${r.total?(r.total/10000).toFixed(0):'-'}만</div></div>
+  </div>
+  <div class="log-detail">@${r.plusP?r.plusP.toLocaleString():'-'} · @${r.kodexP?r.kodexP.toLocaleString():'-'} · 주문 ${r.orders}건</div>
+  ${delta}
+</div>`;
+  }).join('');
 }
 
-// ────────────────────────────────────────────────
-// 통계 렌더
-// ────────────────────────────────────────────────
 function renderStats() {
   const n = records.length;
   document.getElementById('s-cnt').textContent = n + '회';
@@ -1303,9 +1104,6 @@ function renderStats() {
   }
 }
 
-// ────────────────────────────────────────────────
-// 전체 렌더 진입점
-// ────────────────────────────────────────────────
 function renderAll() {
   renderStats();
   renderMonthNav();
@@ -1319,9 +1117,6 @@ function renderAll() {
   }
 }
 
-// ────────────────────────────────────────────────
-// 토글
-// ────────────────────────────────────────────────
 function toggleGoals() {
   const list = document.getElementById('hiddenGoals');
   const btn  = document.getElementById('goal-expand-btn');
@@ -1344,9 +1139,6 @@ function toggleMilestones() {
   }
 }
 
-// ────────────────────────────────────────────────
-// CRUD / 백업
-// ────────────────────────────────────────────────
 function delRec(date) { records = records.filter(r => r.date !== date); persist(); renderAll(); }
 
 function clearAll() {
@@ -1394,9 +1186,6 @@ function doImport(arr) {
   toast(arr.length + '개 기록 복원 완료!');
 }
 
-// ────────────────────────────────────────────────
-// 유틸
-// ────────────────────────────────────────────────
 function formatDateDiff(dateStr) {
   const today  = new Date(); today.setHours(0,0,0,0);
   const target = new Date(dateStr); target.setHours(0,0,0,0);
@@ -1414,494 +1203,12 @@ function toast(msg, isErr = false) {
   setTimeout(() => t.classList.remove('show'), 2400);
 }
 
-// ────────────────────────────────────────────────
-// 초기화
-// ────────────────────────────────────────────────
-
 loadData();
-
-// 🔥 추가
-renderDividendChart(new Date().getFullYear().toString());
-renderReinvestChart();
-
-const impact = getReinvestImpact();
-document.getElementById('impact').innerHTML = `
-  재투자 효과: +${impact.diff.toLocaleString()}원 
-  (${impact.rate.toFixed(2)}%)
-`;
 
 if (records.length) {
   const years = [...new Set(records.map(r => r.date.slice(0,4)))].sort();
   const latestYear = years[years.length - 1];
   nav = { type: 'year', year: latestYear, ym: null };
-}
-
-let logsExpanded = false;
-
-function toggleLogs() {
-  const hidden = document.getElementById('log-hidden-list');
-  const btn = document.getElementById('log-expand-btn');
-
-  logsExpanded = !logsExpanded;
-
-  hidden.classList.toggle('open', logsExpanded);
-  btn.classList.toggle('open', logsExpanded);
-
-  btn.querySelector('span').textContent =
-    logsExpanded ? '접기' : '전체 기록 보기';
-}
-
-function renderLogItem(r, isLatest=false) {
-  const globalIdx = records.indexOf(r);
-  const prev      = globalIdx > 0 ? records[globalIdx - 1] : null;
-  const md        = r.plusSh * 156 + r.kodexSh * 244;
-
-  let delta = '';
-  if (prev) {
-    const dp = r.plusSh  - prev.plusSh;
-    const dk = r.kodexSh - prev.kodexSh;
-    const dd = md - (prev.plusSh*156 + prev.kodexSh*244);
-    const dt = r.total - prev.total;
-
-    delta = `<div class="log-delta">
-      <span class="ld ${dp>0?'ld-plus-up':dp<0?'ld-plus-dn':'ld-plus-neu'}">PLUS ${dp>=0?'+':''}${dp}주</span>
-      <span class="ld ${dk>0?'ld-kodex-up':dk<0?'ld-kodex-dn':'ld-kodex-neu'}">KODEX ${dk>=0?'+':''}${dk}주</span>
-      <span class="ld ${dd>0?'ld-div-up':dd<0?'ld-div-dn':'ld-div-neu'}">배당 ${dd>=0?'+':''}${(dd/10000).toFixed(2)}만</span>
-      <span class="ld ${dt>0?'ld-tot-up':dt<0?'ld-tot-dn':'ld-tot-neu'}">자산 ${dt>=0?'+':''}${(dt/10000).toFixed(0)}만</span>
-    </div>`;
-  }
-
-  return `<div class="log-item ${isLatest?'latest':''}">
-    <button class="log-del" onclick="delRec('${r.date}')">✕</button>
-
-    <div class="log-top">
-      <span class="log-date">${r.date}</span>
-      ${isLatest ? '<span class="log-badge">LATEST</span>' : ''}
-    </div>
-
-    <div class="log-nums">
-      <div><div class="ln-l">PLUS</div><div class="ln-v" style="color:#00e5ff">${r.plusSh}주</div></div>
-      <div><div class="ln-l">KODEX</div><div class="ln-v" style="color:#a78bfa">${r.kodexSh}주</div></div>
-      <div><div class="ln-l">월배당</div><div class="ln-v" style="color:#fb923c">${(md/10000).toFixed(2)}만</div></div>
-      <div><div class="ln-l">총자산</div><div class="ln-v" style="color:#fbbf24">${r.total?(r.total/10000).toFixed(0):'-'}만</div></div>
-    </div>
-
-    <div class="log-detail">
-      @${r.plusP?r.plusP.toLocaleString():'-'} · 
-      @${r.kodexP?r.kodexP.toLocaleString():'-'} · 
-      주문 ${r.orders}건
-    </div>
-
-    ${delta}
-  </div>`;
-}
-
-function toggleLogs(btn) {
-  const hidden = btn.parentElement.nextElementSibling;
-
-  const isOpen = hidden.classList.toggle('open');
-
-  btn.classList.toggle('open', isOpen);
-  btn.querySelector('span').textContent =
-    isOpen ? '접기' : '전체 기록 보기';
-}
-
-function getMonthlyDivBreakdown(divs, ym) {
-  let total = 0;
-  let plus = 0;
-  let kodex = 0;
-
-  divs.forEach(d => {
-    if (d.date.startsWith(ym)) {
-      const plusAmt  = d.plus.shares * d.plus.perShare;
-      const kodexAmt = d.kodex.shares * d.kodex.perShare;
-      const sum = plusAmt + kodexAmt;
-
-      total += sum;
-      plus  += plusAmt;
-      kodex += kodexAmt;
-    }
-  });
-
-  const tracked = plus + kodex;
-
-  return {
-    total,              // 총 배당 (현재는 추적된 값 기준)
-    plus,
-    kodex,
-    extra: 0,           // 여기서 나중에 보정
-    tracked
-  };
-}
-
-function applyRealTotal(monthData, realTotal) {
-  const extra = realTotal - (monthData.plus + monthData.kodex);
-
-  return {
-    ...monthData,
-    total: realTotal,
-    extra: extra > 0 ? extra : 0
-  };
-}
-
-function calcReinvestTotal(monthData, plusPrice) {
-  const shares = monthData.total / plusPrice;
-
-  return {
-    buyShares: shares,
-    usedAmount: monthData.total
-  };
-}
-
-function calcCompound(monthDataList, plusPrice) {
-  let totalShares = 0;
-
-  monthDataList.forEach(m => {
-    totalShares += m.total / plusPrice;
-  });
-
-  return totalShares;
-}
-
-function getYearlyDivData(year){
-  const result = {};
-
-  records.forEach(r=>{
-    if(!r.divData) return;
-
-    const [y,m] = r.date.split('-');
-    if(y !== year) return;
-
-    if(!result[m]){
-      result[m] = { plus:0, kodex:0, other:0 };
-    }
-
-    const d = r.divData;
-
-    result[m].plus += d.plusDiv || 0;
-    result[m].kodex += d.kodexDiv || 0;
-    result[m].other += (d.amount - d.plusDiv - d.kodexDiv) || 0;
-  });
-
-  return result;
-}
-
-function renderDividendChart(year) {
-  const ctx = document.getElementById('divChart');
-  if (!ctx) return;
-
-  let divs = JSON.parse(localStorage.getItem('divs') || '[]');
-  if (!Array.isArray(divs) || !divs.length) return;
-
-  const filtered = divs.filter(d => {
-    if (!d.date) return false;
-    return d.date.substring(0,4) === String(year);
-  });
-
-  if (!filtered.length) return;
-
-  // 🔥 월별 집계
-const monthly = {};
-
-filtered.forEach(d => {
-  const ym = d.date.slice(0,7); // 2026-03
-
-  if (!monthly[ym]) {
-    monthly[ym] = {
-      total:0,
-      plus:0,
-      kodex:0,
-      extra:0
-    };
-  }
-
-  monthly[ym].total += Number(d.amount) || 0;
-  monthly[ym].plus += Number(d.plusDiv) || 0;
-  monthly[ym].kodex += Number(d.kodexDiv) || 0;
-});
-
-// +@ 계산
-Object.keys(monthly).forEach(m => {
-  monthly[m].extra =
-    monthly[m].total -
-    monthly[m].plus -
-    monthly[m].kodex;
-});
-
-const labels = Object.keys(monthly);
-
-const plusData = labels.map(m => monthly[m].plus);
-const kodexData = labels.map(m => monthly[m].kodex);
-const extraData = labels.map(m => monthly[m].extra);
-
-  if (charts.div) charts.div.destroy();
-
-  charts.div = new Chart(ctx, {
-  type: 'bar',
-  data: {
-    labels,
-    datasets: [
-      {
-        label: 'PLUS',
-        data: plusData,
-        backgroundColor: '#22c55e'
-      },
-      {
-        label: 'KODEX',
-        data: kodexData,
-        backgroundColor: '#3b82f6'
-      },
-      {
-        label: '+@',
-        data: extraData,
-        backgroundColor: '#94a3b8'
-      }
-    ]
-  },
-  options: {
-    responsive: true,
-    plugins:{
-      legend:{ labels:{ color:'#e2e8f0' } }
-    },
-    scales:{
-      x:{ stacked:true, ticks:{ color:'#94a3b8' }},
-      y:{ stacked:true, ticks:{ color:'#94a3b8' }}
-    }
-  }
-});
-}
-
-function simulateReinvest(){
-  let base = 0;
-  let reinvest = 0;
-
-  const history = [];
-
-  records
-    .sort((a,b)=>a.date.localeCompare(b.date))
-    .forEach(r=>{
-      base = r.total;
-
-      const div = r.divData?.amount || 0;
-
-      // 재투자: PLUS 가격으로 매수
-      const price = r.plusP || 1;
-      const shares = div / price;
-
-      reinvest += div;
-      reinvest *= (r.plusP / price); // 가격 상승 반영
-
-      history.push({
-        date:r.date,
-        base,
-        reinvest: base + reinvest
-      });
-    });
-
-  return history;
-}
-
-function renderReinvestChart(){
-  const ctx = document.getElementById('reinvestChart').getContext('2d');
-  const data = simulateReinvest();
-
-  new Chart(ctx,{
-    type:'line',
-    data:{
-      labels: data.map(d=>d.date),
-      datasets:[
-        {
-          label:'재투자 없음',
-          data: data.map(d=>d.base),
-          borderColor:'#888'
-        },
-        {
-          label:'재투자',
-          data: data.map(d=>d.reinvest),
-          borderColor:'#ff9800'
-        }
-      ]
-    }
-  });
-}
-
-function getReinvestImpact(){
-  const data = simulateReinvest();
-  const last = data[data.length-1];
-
-  const diff = last.reinvest - last.base;
-  const rate = (diff / last.base) * 100;
-
-  return { diff, rate };
-}
-
-function renderMonthSelector(){
-  const scroll=document.getElementById('month-scroll');
-  scroll.innerHTML='';
-
-  const allBtn=document.createElement('button');
-  allBtn.className='month-btn all-btn'+(selectedMonth==='all'?' active':'');
-  allBtn.textContent='전체';
-  allBtn.onclick=()=>{
-    selectedMonth='all';
-    selectedYear=null;
-    renderMonthSelector();
-    showSection('all');
-  };
-  scroll.appendChild(allBtn);
-
-  // 🔥 년도별 데이터 만들기
-  const data = {};
-
-  records.forEach(r=>{
-    const [y,m]=r.date.split('-');
-    if(!data[y]) data[y]=new Set();
-    data[y].add(m);
-  });
-
-  Object.keys(data)
-    .sort((a,b)=>b-a)
-    .forEach(year=>{
-      const isOpen = selectedYear === year;
-
-      const yBtn=document.createElement('button');
-      yBtn.className='month-btn'+(isOpen?' active':'');
-      yBtn.textContent=`${year} ${isOpen?'▼':'▶'}`;
-
-      // ✅ 여기다 들어가는거다
-      yBtn.onclick=()=>{
-        selectedYear = isOpen ? null : year;
-        selectedMonth='all';
-let selectedYear = null;
-
-        renderMonthSelector();
-
-        // 🔥 여기
-        renderDividendChart(year);
-      };
-
-      scroll.appendChild(yBtn);
-
-      if(isOpen){
-        [...data[year]].sort().forEach(m=>{
-          const ym=`${year}-${m}`;
-
-          const mBtn=document.createElement('button');
-          mBtn.className='month-btn'+(selectedMonth===ym?' active':'');
-          mBtn.style.marginLeft='10px';
-          mBtn.textContent=`${parseInt(m)}월`;
-
-          mBtn.onclick=()=>{
-            selectedMonth=ym;
-            renderMonthSelector();
-            showSection('month');
-            renderMonthSection(ym);
-          };
-
-          scroll.appendChild(mBtn);
-        });
-      }
-    });
-}
-
-function renderReinvestChart() {
-  const ctx = document.getElementById('reinvestChart');
-  if (!ctx) return;
-
-  let divs = JSON.parse(localStorage.getItem('divs') || '[]');
-
-  if (!divs.length) return;
-
-  let noReinvest = 0;
-  let reinvest = 0;
-
-  const labels = [];
-  const noArr = [];
-  const reinvestArr = [];
-
-  divs.forEach(d => {
-    noReinvest += d.amount || 0;
-    reinvest += (d.amount || 0) * 1.02; // 재투자 가정
-
-    labels.push(d.date);
-    noArr.push(noReinvest);
-    reinvestArr.push(reinvest);
-  });
-
-  if (charts.reinvestChart) charts.reinvestChart.destroy();
-
-  charts.reinvestChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        { label: '재투자 없음', data: noArr },
-        { label: '재투자', data: reinvestArr }
-      ]
-    }
-  });
-}
-
-function getReinvestImpact() {
-  let divs = JSON.parse(localStorage.getItem('divs') || '[]');
-
-  let noReinvest = 0;
-  let reinvest = 0;
-
-  divs.forEach(d => {
-    noReinvest += d.amount || 0;
-    reinvest += (d.amount || 0) * 1.02;
-  });
-
-  return {
-    diff: reinvest - noReinvest,
-    rate: noReinvest ? ((reinvest - noReinvest) / noReinvest * 100) : 0
-  };
-}
-
-function groupByMonth(divs) {
-  const map = {};
-
-  divs.forEach(d => {
-    const month = d.date.slice(0, 7); // YYYY-MM
-
-    if (!map[month]) {
-      map[month] = {
-        plus: 0,
-        kodex: 0,
-        etc: 0
-      };
-    }
-
-    map[month].plus += d.plusDiv || 0;
-    map[month].kodex += d.kodexDiv || 0;
-
-    // 기타 (+@)
-    const etc = (d.amount || 0) - (d.plusDiv || 0) - (d.kodexDiv || 0);
-    map[month].etc += etc > 0 ? etc : 0;
-  });
-
-  return map;
-}
-
-function renderDividendRatio(monthly) {
-  const last = Object.keys(monthly).pop();
-  if (!last) return;
-
-  const m = monthly[last];
-  const total = m.total || 1;
-
-  const plusPct = (m.plus / total * 100).toFixed(1);
-  const kodexPct = (m.kodex / total * 100).toFixed(1);
-  const extraPct = (m.extra / total * 100).toFixed(1);
-
-  document.getElementById('divRatio').innerHTML = `
-    <div style="display:flex;gap:10px;font-size:12px;margin-top:10px;">
-      <span style="color:#22c55e">PLUS ${plusPct}%</span>
-      <span style="color:#3b82f6">KODEX ${kodexPct}%</span>
-      <span style="color:#94a3b8">+@ ${extraPct}%</span>
-    </div>
-  `;
 }
 
 renderAll();
