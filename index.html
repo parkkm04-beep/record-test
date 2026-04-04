@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html>최종본v1
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -54,6 +54,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .btn-qs:not(:disabled){background:linear-gradient(135deg,#065f46,#34d399);color:#000;}
 .btn-qs:disabled{background:#112035;color:#4a6080;cursor:not-allowed;}
 
+/* ── 아코디언 월별 셀렉터 ── */
 .month-nav{margin-bottom:16px;display:flex;flex-direction:column;gap:0;}
 .mn-all-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;border:1px solid #182a40;background:transparent;color:#4a6080;font-size:11px;font-weight:700;cursor:pointer;font-family:'Space Mono',monospace;transition:all .15s;margin-bottom:10px;align-self:flex-start;}
 .mn-all-btn:hover{color:#e2e8f0;border-color:#334a60;}
@@ -170,6 +171,7 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
   <button class="tab" onclick="switchTab('records')">📋 기록 보기</button>
 </div>
 
+<!-- ── 입력 탭 ── -->
 <div id="tab-input">
   <div class="sec">사용법</div>
   <div class="guide-box">
@@ -224,6 +226,7 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
   </div>
 </div>
 
+<!-- ── 기록 탭 ── -->
 <div id="tab-records" style="display:none">
   <div class="stats-grid">
     <div class="stat-c"><div class="stat-v" style="color:#fbbf24" id="s-cnt">-</div><div class="stat-l">체크 횟수</div></div>
@@ -235,6 +238,7 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
   <div class="sec">월별 보기</div>
   <div class="month-nav" id="month-nav"></div>
 
+  <!-- 전체 섹션 -->
   <div id="section-all">
     <div class="sec">🎖️ 전역까지 달성도</div>
     <div class="discharge-section" id="discharge-section">
@@ -247,6 +251,7 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
     <div class="empty-state" id="empty-all" style="display:none">아직 저장된 기록이 없어요.</div>
   </div>
 
+  <!-- 월별 섹션 -->
   <div id="section-month" style="display:none">
     <div class="sec">📅 <span id="month-section-title">-</span> 달성도</div>
     <div id="month-goal-card" class="month-goal-card">
@@ -279,6 +284,7 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
+// ── 상수 ──
 const SKEY = 'invest-logs-v6';
 const GKEY = 'invest-goals-v1';
 let records = [];
@@ -286,22 +292,30 @@ let goals = null;
 let charts = {};
 let qsParsed = null;
 
+// 선택 상태: { type:'all'|'year'|'month', year:null|'2026', ym:null|'2026-03' }
 let nav = { type:'all', year:null, ym:null };
 
 document.getElementById('inp-date').value = new Date().toISOString().slice(0,10);
 
+// ────────────────────────────────────────────────
+// 한국 주식시장 공휴일 (2025~2027)
+// 출처: KRX 시장 휴장일 기준
+// ────────────────────────────────────────────────
 const KR_HOLIDAYS = new Set([
+  // 2025
   '2025-01-01','2025-01-27','2025-01-28','2025-01-29','2025-01-30',
   '2025-03-01','2025-05-01','2025-05-05','2025-05-06',
   '2025-06-06','2025-08-15',
   '2025-10-03','2025-10-05','2025-10-06','2025-10-07','2025-10-08','2025-10-09',
   '2025-12-25',
+  // 2026
   '2026-01-01','2026-01-28','2026-01-29','2026-01-30',
   '2026-03-01','2026-03-02','2026-05-01','2026-05-05','2026-05-25',
   '2026-06-06','2026-08-15','2026-08-17',
   '2026-09-24','2026-09-25','2026-09-26',
   '2026-10-03','2026-10-05','2026-10-09',
   '2026-12-25',
+  // 2027
   '2027-01-01','2027-02-07','2027-02-08','2027-02-09','2027-02-10',
   '2027-03-01','2027-05-01','2027-05-05','2027-05-13',
   '2027-06-06','2027-08-15','2027-08-16',
@@ -310,6 +324,12 @@ const KR_HOLIDAYS = new Set([
   '2027-12-25','2027-12-27'
 ]);
 
+/**
+ * 두 날짜 사이의 주식 거래 가능일 수를 계산한다.
+ * from 당일은 포함하지 않고, to 당일도 포함하지 않는다.
+ * (즉, from < 날짜 < to 인 거래일 수)
+ * from === to 면 0 반환.
+ */
 function countTradingDays(fromDate, toDate) {
   const start = new Date(fromDate);
   const end   = new Date(toDate);
@@ -320,9 +340,9 @@ function countTradingDays(fromDate, toDate) {
 
   let count = 0;
   const cur = new Date(start);
-  cur.setDate(cur.getDate() + 1);
+  cur.setDate(cur.getDate() + 1); // from 다음날부터 시작
   while (cur < end) {
-    const dow = cur.getDay();
+    const dow = cur.getDay(); // 0=일, 6=토
     if (dow !== 0 && dow !== 6) {
       const ymd = cur.toISOString().slice(0, 10);
       if (!KR_HOLIDAYS.has(ymd)) count++;
@@ -332,20 +352,29 @@ function countTradingDays(fromDate, toDate) {
   return count;
 }
 
+/**
+ * 두 날짜 사이(양 끝 포함) 거래일 수 — 속도 계산용
+ * from 당일과 to 당일 사이의 차이를 표현하기 위해
+ * from 다음날 ~ to 당일까지 거래일 수를 반환.
+ */
 function tradingDaySpan(fromDate, toDate) {
   return Math.max(1, countTradingDays(fromDate, toDate));
 }
 
+// ────────────────────────────────────────────────
+// 색상 / 라벨 헬퍼
+// 초과달성(≥105%)은 한국 주식 상승 색인 빨간계열로 표시
+// ────────────────────────────────────────────────
 function pctColor(pct, isFuture) {
   if (isFuture) {
     if (pct >= 80) return '#00e5ff';
     if (pct >= 50) return '#a78bfa';
     return '#4a6080';
   }
-  if (pct >= 105) return '#ef4444';
-  if (pct >= 95)  return '#00e5ff';
-  if (pct >= 85)  return '#fbbf24';
-  return '#6b7280';
+  if (pct >= 105) return '#ef4444'; // 초과달성 — 한국 주식 상승색(적색)
+  if (pct >= 95)  return '#00e5ff'; // 정상 궤도
+  if (pct >= 85)  return '#fbbf24'; // 소폭 미달
+  return '#6b7280';                 // 계획 수정 필요
 }
 
 function pctLabel(pct, isFuture) {
@@ -356,6 +385,9 @@ function pctLabel(pct, isFuture) {
   return '계획 수정 필요 ❗';
 }
 
+// ────────────────────────────────────────────────
+// 빠른 저장 입력 파싱
+// ────────────────────────────────────────────────
 function onQSInput() {
   const raw = document.getElementById('qs-input').value.trim();
   const btn = document.getElementById('btn-qs');
@@ -391,13 +423,8 @@ function onQSInput() {
       if (d.discharge) {
         result.goal = d;
         goalPrev.style.display = 'block';
-        const curYm = new Date().toISOString().slice(0, 7);
-        const mg = d.monthGoal && d.monthGoal[curYm] ? d.monthGoal[curYm] : null;
-        if (mg) {
-          goalPrev.innerHTML = `🎯 목표 확인 · 전역: PLUS ${d.discharge.plusSh}주 / 배당 ${d.discharge.div}만 · 이번달: PLUS ${mg.plusSh || '-'}주`;
-        } else {
-          goalPrev.innerHTML = `🎯 목표 확인 · 전역: PLUS ${d.discharge.plusSh}주 / 배당 ${d.discharge.div}만`;
-        }
+        const mg = d.monthGoal || {};
+        goalPrev.innerHTML = `🎯 목표 확인 · 전역: PLUS ${d.discharge.plusSh}주 / 배당 ${d.discharge.div}만 · 이번달: PLUS ${mg.plusSh || '-'}주`;
       }
     } catch(e) { console.warn('GOAL parse error', e); }
   }
@@ -446,6 +473,9 @@ function quickSave() {
   renderAll();
 }
 
+// ────────────────────────────────────────────────
+// 탭 전환
+// ────────────────────────────────────────────────
 function switchTab(t) {
   document.getElementById('tab-input').style.display   = t === 'input'   ? 'block' : 'none';
   document.getElementById('tab-records').style.display = t === 'records' ? 'block' : 'none';
@@ -454,6 +484,9 @@ function switchTab(t) {
   if (t === 'records') renderAll();
 }
 
+// ────────────────────────────────────────────────
+// 입력 폼
+// ────────────────────────────────────────────────
 function updatePreview() {
   const ps  = +document.getElementById('inp-plus-sh').value  || 0;
   const ks  = +document.getElementById('inp-kodex-sh').value || 0;
@@ -508,6 +541,9 @@ function loadData() {
   try { const g = localStorage.getItem(GKEY); if (g) goals   = JSON.parse(g); } catch(e) { goals   = null; }
 }
 
+// ────────────────────────────────────────────────
+// 계층형 월별 네비게이터
+// ────────────────────────────────────────────────
 function getYears()  { return [...new Set(records.map(r => r.date.slice(0,4)))].sort(); }
 function getMonths() { return [...new Set(records.map(r => r.date.slice(0,7)))].sort(); }
 
@@ -523,6 +559,7 @@ function renderMonthNav() {
   const latestYear = years[years.length - 1];
   const expandedYear = nav.type === 'all' ? latestYear : (nav.year || latestYear);
 
+  // 전체 버튼
   const allBtn = document.createElement('button');
   allBtn.className = 'mn-all-btn' + (nav.type === 'all' ? ' active' : '');
   allBtn.textContent = '전체';
@@ -534,6 +571,7 @@ function renderMonthNav() {
   };
   container.appendChild(allBtn);
 
+  // 년도별 아코디언 그룹 (최신 년도 위)
   [...years].reverse().forEach(yr => {
     const isExpanded = yr === expandedYear;
     const monthsInYear = months.filter(m => m.startsWith(yr));
@@ -591,6 +629,9 @@ function showSection(which) {
   document.getElementById('section-month').style.display = which === 'month' ? 'block' : 'none';
 }
 
+// ────────────────────────────────────────────────
+// 섹션별 렌더
+// ────────────────────────────────────────────────
 function renderAllContent() {
   let filtered = records;
   if (nav.type === 'year' && nav.year) {
@@ -615,6 +656,9 @@ function renderMonthSection(ym) {
   renderLogList(document.getElementById('log-list-month'), document.getElementById('empty-month'), ym);
 }
 
+// ────────────────────────────────────────────────
+// 전역 달성도 (진행도 바)
+// ────────────────────────────────────────────────
 function renderDischarge() {
   const sec = document.getElementById('discharge-section');
   const latest = records.length ? records[records.length - 1] : null;
@@ -713,6 +757,18 @@ function mkMini(label, color, cur, goal, unit, pct, isFuture) {
 </div>`;
 }
 
+// ────────────────────────────────────────────────
+// 달성 가능성 분석
+//
+// ★ 주식 거래일(주말·한국 공휴일 제외) 기준으로 계산
+//
+// 속도 계산:
+//   (최신 보유량 - 최초 보유량) ÷ 기록 기간 거래일 수
+//   → 하루(거래일 1일)당 평균 증가량
+//
+// 예상 달성:
+//   현재 보유량 + (목표일까지 남은 거래일 × 거래일당 속도) ≥ 목표
+// ────────────────────────────────────────────────
 function analyzeGoal() {
   if (!goals || !goals.discharge || records.length < 2) return '';
 
@@ -729,8 +785,8 @@ function analyzeGoal() {
     return new Date(d.getFullYear(), d.getMonth() + 1, 0);
   }
 
-  const privateDate  = endOfMonth(addMonths(enlistDate, 8));
-  const corporalDate = endOfMonth(addMonths(enlistDate, 14));
+  const privateDate  = endOfMonth(addMonths(enlistDate, 8));   // 일병 종료
+  const corporalDate = endOfMonth(addMonths(enlistDate, 14));  // 상병 종료
 
   const d = goals.discharge;
 
@@ -740,6 +796,7 @@ function analyzeGoal() {
     { name:'전역', date: dischargeDate, plusGoal: d.plusSh,                  kodexGoal: d.kodexSh,                  divGoal: d.div                    }
   ];
 
+  // milestones가 있으면 우선 사용
   if (goals.milestones && goals.milestones.length) {
     goals.milestones.forEach((ms, i) => {
       if (targets[i]) {
@@ -753,13 +810,14 @@ function analyzeGoal() {
   const first   = records[0];
   const last    = records[records.length - 1];
 
+  // ★ 주식 거래일 기준 속도 계산
   const tradingSpan = tradingDaySpan(first.date, last.date);
 
-  const plusSpeed  = (last.plusSh  - first.plusSh)  / tradingSpan;
-  const kodexSpeed = (last.kodexSh - first.kodexSh) / tradingSpan;
+  const plusSpeed  = (last.plusSh  - first.plusSh)  / tradingSpan; // 주/거래일
+  const kodexSpeed = (last.kodexSh - first.kodexSh) / tradingSpan; // 주/거래일
   const lastDiv    = (last.plusSh  * 156 + last.kodexSh  * 244) / 10000;
   const firstDiv   = (first.plusSh * 156 + first.kodexSh * 244) / 10000;
-  const divSpeed   = (lastDiv - firstDiv) / tradingSpan;
+  const divSpeed   = (lastDiv - firstDiv) / tradingSpan; // 만원/거래일
 
   const today = new Date();
   today.setHours(0,0,0,0);
@@ -770,9 +828,12 @@ function analyzeGoal() {
 
     const isPast = goalDate <= today;
 
+    // ★ 목표일까지 남은 거래일 수 (오늘 기준)
     const remainTD = isPast ? 0 : countTradingDays(today, goalDate);
+    // 단순 달력일도 D-표시용으로 계산
     const remainCalDays = Math.round((goalDate - today) / (1000*60*60*24));
 
+    // 현재 거래일 속도로 목표일까지 예상 달성값
     const projPlus  = last.plusSh  + plusSpeed  * remainTD;
     const projKodex = last.kodexSh + kodexSpeed * remainTD;
     const projDiv   = lastDiv      + divSpeed   * remainTD;
@@ -782,10 +843,12 @@ function analyzeGoal() {
     const isOkDiv   = projDiv   >= t.divGoal;
     const allOk     = isOkPlus && isOkKodex && isOkDiv;
 
+    // 현재 달성률
     const plusPct  = Math.round(last.plusSh  / t.plusGoal  * 100);
     const kodexPct = Math.round(last.kodexSh / t.kodexGoal * 100);
     const divPct   = Math.round(lastDiv      / t.divGoal   * 100);
 
+    // 목표일까지 필요한 거래일당 속도
     const needPlus  = remainTD > 0 ? (t.plusGoal  - last.plusSh)  / remainTD : null;
     const needKodex = remainTD > 0 ? (t.kodexGoal - last.kodexSh) / remainTD : null;
     const needDiv   = remainTD > 0 ? (t.divGoal   - lastDiv)      / remainTD : null;
@@ -822,6 +885,7 @@ function analyzeGoal() {
 </div>`;
     }
 
+    // 미래 시점 — 거래일 기준 속도 차이
     const diffP = r.needPlus  != null ? (r.plusSpeed  - r.needPlus).toFixed(2)  : '∞';
     const diffK = r.needKodex != null ? (r.kodexSpeed - r.needKodex).toFixed(2) : '∞';
     const diffD = r.needDiv   != null ? (r.divSpeed   - r.needDiv).toFixed(3)   : '∞';
@@ -885,6 +949,9 @@ function analyzeGoal() {
 </div>`;
 }
 
+// ────────────────────────────────────────────────
+// 이번 달 목표 달성도
+// ────────────────────────────────────────────────
 function renderMonthGoal(ym) {
   const card      = document.getElementById('month-goal-card');
   const monthRecs = records.filter(r => r.date.startsWith(ym));
@@ -892,18 +959,18 @@ function renderMonthGoal(ym) {
   const latest = monthRecs[monthRecs.length - 1];
   const curDiv = (latest.plusSh * 156 + latest.kodexSh * 244) / 10000;
 
-  if (!goals || !goals.monthGoal || !goals.monthGoal[ym]) {
+  if (!goals || !goals.monthGoal) {
     card.innerHTML = '<div class="no-goal">🎯 GOAL:: 코드를 붙여넣으면 이 달 목표 달성도가 표시돼요</div>';
     return;
   }
-  const mg = goals.monthGoal[ym];
+  const mg = goals.monthGoal;
   const plusPct  = Math.round(latest.plusSh  / mg.plusSh * 100);
   const kodexPct = Math.round(latest.kodexSh / mg.kodexSh * 100);
   const divPct   = Math.round(curDiv         / mg.div    * 100);
 
   card.innerHTML = `<div class="mg-header">
   <div class="mg-title">📅 ${ym.slice(5)}월 목표</div>
-  <div style="font-size:10px;color:#4a6080;font-family:'Space Mono',monospace;">${ym} 기준</div>
+  <div style="font-size:10px;color:#4a6080;font-family:'Space Mono',monospace;">${mg.ym || ym} 기준</div>
 </div>
 <div class="mg-grid">
   ${mkMonthItem('PLUS',   '#00e5ff', latest.plusSh,       mg.plusSh,  '주', plusPct)}
@@ -925,6 +992,9 @@ function mkMonthItem(label, color, cur, goal, unit, pct) {
 </div>`;
 }
 
+// ────────────────────────────────────────────────
+// 차트
+// ────────────────────────────────────────────────
 function renderMonthInnerChart(ym) {
   const recs = records.filter(r => r.date.startsWith(ym));
   const box  = document.getElementById('month-chart-box');
@@ -984,6 +1054,7 @@ function renderMonthlyCharts(filtered) {
 
   wrap.innerHTML = '';
 
+  // 수량 차트
   const r1 = document.createElement('div');
   r1.className = 'chart-box';
   r1.innerHTML = '<div class="chart-title" style="color:#e2e8f0">📦 종목별 수량 증가 (월별)</div><canvas id="mc-shares" height="140"></canvas>';
@@ -1012,6 +1083,7 @@ function renderMonthlyCharts(filtered) {
     }
   });
 
+  // 배당 차트
   const r2 = document.createElement('div');
   r2.className = 'chart-box';
   r2.innerHTML = '<div class="chart-title" style="color:#e2e8f0">📈 월 배당 증가액 (월별)</div><canvas id="mc-div" height="120"></canvas>';
@@ -1044,6 +1116,9 @@ function renderMonthlyCharts(filtered) {
   });
 }
 
+// ────────────────────────────────────────────────
+// 기록 목록
+// ────────────────────────────────────────────────
 function renderLogList(listEl, emptyEl, filterPrefix) {
   let filtered = filterPrefix
     ? records.filter(r => r.date.startsWith(filterPrefix))
@@ -1088,6 +1163,9 @@ function renderLogList(listEl, emptyEl, filterPrefix) {
   }).join('');
 }
 
+// ────────────────────────────────────────────────
+// 통계 렌더
+// ────────────────────────────────────────────────
 function renderStats() {
   const n = records.length;
   document.getElementById('s-cnt').textContent = n + '회';
@@ -1104,6 +1182,9 @@ function renderStats() {
   }
 }
 
+// ────────────────────────────────────────────────
+// 전체 렌더 진입점
+// ────────────────────────────────────────────────
 function renderAll() {
   renderStats();
   renderMonthNav();
@@ -1117,6 +1198,9 @@ function renderAll() {
   }
 }
 
+// ────────────────────────────────────────────────
+// 토글
+// ────────────────────────────────────────────────
 function toggleGoals() {
   const list = document.getElementById('hiddenGoals');
   const btn  = document.getElementById('goal-expand-btn');
@@ -1139,6 +1223,9 @@ function toggleMilestones() {
   }
 }
 
+// ────────────────────────────────────────────────
+// CRUD / 백업
+// ────────────────────────────────────────────────
 function delRec(date) { records = records.filter(r => r.date !== date); persist(); renderAll(); }
 
 function clearAll() {
@@ -1186,6 +1273,9 @@ function doImport(arr) {
   toast(arr.length + '개 기록 복원 완료!');
 }
 
+// ────────────────────────────────────────────────
+// 유틸
+// ────────────────────────────────────────────────
 function formatDateDiff(dateStr) {
   const today  = new Date(); today.setHours(0,0,0,0);
   const target = new Date(dateStr); target.setHours(0,0,0,0);
@@ -1203,6 +1293,9 @@ function toast(msg, isErr = false) {
   setTimeout(() => t.classList.remove('show'), 2400);
 }
 
+// ────────────────────────────────────────────────
+// 초기화
+// ────────────────────────────────────────────────
 loadData();
 
 if (records.length) {
