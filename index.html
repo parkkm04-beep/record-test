@@ -1,4 +1,4 @@
-<!DOCTYPE html> 테스터 1
+<!DOCTYPE html> 테스터
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -174,6 +174,14 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
 
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .fade-in{animation:fadeUp .3s ease;}
+/* 배당 차트 */
+.div-chart-box{background:#0c1525;border:1px solid rgba(251,146,60,.25);border-radius:14px;padding:14px;margin-bottom:10px;}
+.div-chart-title{font-size:11px;font-weight:700;font-family:'Space Mono',monospace;margin-bottom:4px;letter-spacing:1px;color:#fb923c;}
+.div-chart-sub{font-size:9px;color:#4a6080;font-family:'Space Mono',monospace;margin-bottom:10px;}
+.div-legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+.div-legend-item{display:flex;align-items:center;gap:4px;font-size:9px;font-family:'Space Mono',monospace;color:#e2e8f0;}
+.div-legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+.div-legend-item.est .div-legend-dot{background:repeating-linear-gradient(45deg,#fbbf24 0px,#fbbf24 2px,transparent 2px,transparent 4px);border:1px solid #fbbf24;}
 </style>
 </head>
 <body>
@@ -282,6 +290,8 @@ GOAL::{...}" oninput="onQSInput()"></textarea>
     </div>
     <div class="sec">월별 증가량</div>
     <div id="monthly-charts"></div>
+    <div class="sec">💰 종목별 배당금 실적 vs 예상</div>
+    <div id="div-detail-charts"></div>
     <div class="sec">전체 기록</div>
     <div id="log-list-all"></div>
     <div class="empty-state" id="empty-all" style="display:none">아직 저장된 기록이 없어요.</div>
@@ -321,8 +331,10 @@ GOAL::{...}" oninput="onQSInput()"></textarea>
 <script>
 const SKEY = 'invest-logs-v6';
 const GKEY = 'invest-goals-v1';
+const DKEY = 'invest-divrates-v1'; // 종목별 주당 배당금 히스토리
 let records = [];
 let goals = null;
+let divRates = {}; // { "PLUS": { "2026-04": {actual:156, estimated:156} }, "KODEX": {...} }
 let charts = {};
 let qsParsed = null;
 let nav = { type:'all', year:null, ym:null };
@@ -442,14 +454,24 @@ function parseAndSave(raw) {
     } catch(e) {}
   }
 
-  return (result.save || result.goal) ? result : null;
+  // DIV:: 파싱 — 종목별 주당 배당금 업데이트
+  // 형식: DIV::{"ym":"2026-04","rates":{"PLUS":{"actual":158},"KODEX":{"actual":246}},"estimated":{"PLUS":156,"KODEX":244}}
+  const divJson = extractJSON(raw, 'DIV::');
+  if (divJson) {
+    try {
+      const d = JSON.parse(divJson);
+      if (d.ym && d.rates) result.div = d;
+    } catch(e) {}
+  }
+
+  return (result.save || result.goal || result.div) ? result : null;
 }
 
 function applyParsed(parsed) {
   const msg = [];
   if (parsed.save) {
     const d = parsed.save;
-    upsertRecord({ date:d.date, total:d.total||0, plusSh:d.plusSh||0, plusP:d.plusP||0, kodexSh:d.kodexSh||0, kodexP:d.kodexP||0, div:d.div||0, orders:d.orders||0 });
+    upsertRecord({ date:d.date, total:d.total||0, plusSh:d.plusSh||0, plusP:d.plusP||0, kodexSh:d.kodexSh||0, kodexP:d.kodexP||0, div:d.div||0, orders:d.orders||0, divDetail:d.divDetail||null });
     persist();
     msg.push('기록 저장 ✅');
   }
@@ -458,6 +480,26 @@ function applyParsed(parsed) {
     goals.updatedAt = new Date().toISOString().slice(0,10);
     localStorage.setItem(GKEY, JSON.stringify(goals));
     msg.push('목표 업데이트 🎯');
+  }
+  if (parsed.div) {
+    const { ym, rates, estimated } = parsed.div;
+    // 종목별로 해당 월 데이터 머지
+    Object.entries(rates).forEach(([ticker, data]) => {
+      if (!divRates[ticker]) divRates[ticker] = {};
+      divRates[ticker][ym] = { ...divRates[ticker][ym], ...data };
+    });
+    // 예상 배당금도 저장 (스킬에서 조회한 값)
+    if (estimated) {
+      Object.entries(estimated).forEach(([ticker, rate]) => {
+        if (!divRates[ticker]) divRates[ticker] = {};
+        if (!divRates[ticker][ym]) divRates[ticker][ym] = {};
+        if (divRates[ticker][ym].estimated == null) {
+          divRates[ticker][ym].estimated = rate;
+        }
+      });
+    }
+    persistDivRates();
+    msg.push('배당금 업데이트 💰');
   }
   renderAll();
   return msg.join(' · ');
@@ -625,9 +667,14 @@ function persist() {
   try { localStorage.setItem(SKEY, JSON.stringify(records)); } catch(e) {}
 }
 
+function persistDivRates() {
+  try { localStorage.setItem(DKEY, JSON.stringify(divRates)); } catch(e) {}
+}
+
 function loadData() {
   try { const r = localStorage.getItem(SKEY); if (r) records = JSON.parse(r); } catch(e) { records = []; }
   try { const g = localStorage.getItem(GKEY); if (g) goals   = JSON.parse(g); } catch(e) { goals   = null; }
+  try { const d = localStorage.getItem(DKEY); if (d) divRates = JSON.parse(d); } catch(e) { divRates = {}; }
 }
 
 // ── 월별 네비게이터 ──
@@ -713,6 +760,7 @@ function renderAllContent() {
   }
   renderDischarge();
   renderMonthlyCharts(filtered);
+  renderDivDetailCharts(filtered);
   renderLogList(document.getElementById('log-list-all'), document.getElementById('empty-all'),
     nav.type === 'year' ? nav.year + '-' : null);
 }
@@ -1162,6 +1210,241 @@ function renderMonthlyCharts(filtered) {
   });
 }
 
+// ── 종목별 배당금 실적 vs 예상 차트 ──
+// 종목 색상 팔레트
+const TICKER_COLORS = {
+  PLUS:  { fill:'rgba(0,229,255,.75)',   border:'#00e5ff' },
+  KODEX: { fill:'rgba(167,139,250,.75)', border:'#a78bfa' },
+  BITO:  { fill:'rgba(251,146,60,.75)',  border:'#fb923c' },
+  NVDA:  { fill:'rgba(52,211,153,.75)',  border:'#34d399' },
+  GOOGL: { fill:'rgba(251,191,36,.75)',  border:'#fbbf24' },
+};
+function tickerColor(ticker) {
+  return TICKER_COLORS[ticker] || { fill:'rgba(156,163,175,.6)', border:'#9ca3af' };
+}
+
+function renderDivDetailCharts(filtered) {
+  const wrap = document.getElementById('div-detail-charts');
+  // 기존 차트 정리
+  Object.keys(charts).filter(k => k.startsWith('div-')).forEach(k => {
+    try { if (charts[k]) charts[k].destroy(); } catch(e) {}
+    charts[k] = null;
+  });
+
+  const src    = filtered || records;
+  const months = [...new Set(src.map(r => r.date.slice(0,7)))].sort();
+
+  if (!months.length) { wrap.innerHTML = ''; return; }
+
+  // 각 월의 마지막 레코드 기준으로 데이터 구성
+  const monthRows = months.map(ym => {
+    const recs = src.filter(r => r.date.startsWith(ym));
+    if (!recs.length) return null;
+    const last = recs[recs.length - 1];
+    return { ym, rec: last };
+  }).filter(Boolean);
+
+  // ── 실제 배당금 데이터 수집 ──
+  // divRates에 저장된 종목별 실적/예상값 + record의 divDetail 둘 다 활용
+  // 종목 목록: divRates에 있는 모든 종목 + 레코드 divDetail에 있는 종목
+  const allTickers = new Set(['PLUS', 'KODEX']);
+  Object.keys(divRates).forEach(t => allTickers.add(t));
+  monthRows.forEach(({ rec }) => {
+    if (rec.divDetail) Object.keys(rec.divDetail).forEach(t => allTickers.add(t));
+  });
+  const tickers = [...allTickers];
+
+  // 월별 × 종목별 데이터 매트릭스 구성
+  // actual: 실제 지급된 배당금 (원), estimated: 예상 배당금 (원)
+  // 둘 다 "해당 월 보유수량 × 주당 배당금" 기준
+  const matrix = monthRows.map(({ ym, rec }) => {
+    const row = { ym, label: ym.slice(5) + '월', actual: {}, estimated: {} };
+
+    tickers.forEach(ticker => {
+      const sh = ticker === 'PLUS' ? rec.plusSh : ticker === 'KODEX' ? rec.kodexSh : (rec.divDetail?.[ticker]?.sh || 0);
+
+      // 실제 배당금: divRates[ticker][ym].actual 또는 rec.divDetail[ticker].actual
+      let actualRate = null;
+      if (divRates[ticker]?.[ym]?.actual != null) actualRate = divRates[ticker][ym].actual;
+      else if (rec.divDetail?.[ticker]?.rate != null) actualRate = rec.divDetail[ticker].rate;
+      if (actualRate != null && sh > 0) row.actual[ticker] = Math.round(sh * actualRate);
+
+      // 예상 배당금: divRates[ticker][ym].estimated 또는 fallback(PLUS=156, KODEX=244)
+      let estRate = null;
+      if (divRates[ticker]?.[ym]?.estimated != null) estRate = divRates[ticker][ym].estimated;
+      else if (ticker === 'PLUS')  estRate = 156;
+      else if (ticker === 'KODEX') estRate = 244;
+      if (estRate != null && sh > 0) row.estimated[ticker] = Math.round(sh * estRate);
+    });
+
+    return row;
+  });
+
+  wrap.innerHTML = '';
+
+  // ── 차트 1: 종목별 실제 배당금 누적 막대 + 예상 합계 선 ──
+  const c1 = document.createElement('div');
+  c1.className = 'div-chart-box';
+
+  // 범례 HTML
+  const legendItems = tickers.filter(t => matrix.some(m => m.actual[t] || m.estimated[t]));
+  const legendHtml = legendItems.map(t => {
+    const col = tickerColor(t);
+    return `<div class="div-legend-item"><div class="div-legend-dot" style="background:${col.fill};border:1px solid ${col.border};"></div>${t}</div>`;
+  }).join('') + `<div class="div-legend-item est"><div class="div-legend-dot"></div>예상 합계</div>`;
+
+  c1.innerHTML = `
+    <div class="div-chart-title">💰 종목별 월 배당금 실적 vs 예상</div>
+    <div class="div-chart-sub">실제 지급 배당금 (막대) · 예상 배당금 합계 (점선)</div>
+    <div class="div-legend">${legendHtml}</div>
+    <canvas id="div-bar-chart" height="160"></canvas>`;
+  wrap.appendChild(c1);
+
+  const activeTickers = legendItems;
+  const labels = matrix.map(m => m.label);
+
+  // 누적 막대 datasets (실제)
+  const barDatasets = activeTickers.map(ticker => {
+    const col = tickerColor(ticker);
+    return {
+      label: ticker,
+      data: matrix.map(m => m.actual[ticker] != null ? +(m.actual[ticker]/10000).toFixed(2) : null),
+      backgroundColor: col.fill,
+      borderColor: col.border,
+      borderWidth: 1,
+      borderRadius: 3,
+      stack: 'actual',
+    };
+  });
+
+  // 예상 합계 선 dataset
+  const estLineDataset = {
+    label: '예상 합계',
+    data: matrix.map(m => {
+      const sum = activeTickers.reduce((s, t) => s + (m.estimated[t] || 0), 0);
+      return sum > 0 ? +(sum/10000).toFixed(2) : null;
+    }),
+    type: 'line',
+    borderColor: '#fbbf24',
+    borderWidth: 2,
+    borderDash: [5, 4],
+    pointBackgroundColor: '#fbbf24',
+    pointRadius: 4,
+    fill: false,
+    tension: 0.3,
+    yAxisID: 'y',
+    order: 0,
+  };
+
+  charts['div-bar'] = new Chart(document.getElementById('div-bar-chart').getContext('2d'), {
+    type: 'bar',
+    data: { labels, datasets: [...barDatasets, estLineDataset] },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0c1525',
+          titleColor: '#e2e8f0',
+          bodyColor: '#e2e8f0',
+          callbacks: {
+            label: ctx => {
+              if (ctx.parsed.y == null) return null;
+              const isEst = ctx.dataset.label === '예상 합계';
+              const prefix = isEst ? '📍예상' : ctx.dataset.label;
+              return ` ${prefix}: ${ctx.parsed.y.toFixed(2)}만원`;
+            },
+            afterBody: ctx => {
+              // 실제 합계 표시
+              const actualSum = ctx.filter(c => c.dataset.label !== '예상 합계')
+                .reduce((s, c) => s + (c.parsed.y || 0), 0);
+              if (actualSum > 0) return [`─`, ` 실제 합계: ${actualSum.toFixed(2)}만원`];
+              return [];
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid:{color:'#182a40'}, ticks:{color:'#4a6080',font:{size:10}}, stacked: true },
+        y: { grid:{color:'#182a40'}, ticks:{color:'#4a6080',font:{size:9}, callback: v => v+'만'}, stacked: true }
+      }
+    }
+  });
+
+  // ── 차트 2: 실적 달성률 (실제÷예상 %) ──
+  const hasAnyActual = matrix.some(m => activeTickers.some(t => m.actual[t] != null));
+  if (hasAnyActual) {
+    const c2 = document.createElement('div');
+    c2.className = 'div-chart-box';
+    c2.innerHTML = `
+      <div class="div-chart-title">📊 종목별 배당금 달성률 (%)</div>
+      <div class="div-chart-sub">실제 ÷ 예상 × 100% · 100%선 = 예상과 동일</div>
+      <canvas id="div-pct-chart" height="140"></canvas>`;
+    wrap.appendChild(c2);
+
+    const pctDatasets = activeTickers.map(ticker => {
+      const col = tickerColor(ticker);
+      return {
+        label: ticker,
+        data: matrix.map(m => {
+          const act = m.actual[ticker];
+          const est = m.estimated[ticker];
+          if (act == null || !est) return null;
+          return Math.round(act / est * 100);
+        }),
+        backgroundColor: col.fill,
+        borderColor: col.border,
+        borderWidth: 1,
+        borderRadius: 3,
+      };
+    });
+
+    charts['div-pct'] = new Chart(document.getElementById('div-pct-chart').getContext('2d'), {
+      type: 'bar',
+      data: { labels, datasets: pctDatasets },
+      options: {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: true, labels: { color:'#e2e8f0', font:{size:10}, boxWidth:10 } },
+          tooltip: {
+            backgroundColor: '#0c1525', titleColor:'#e2e8f0', bodyColor:'#e2e8f0',
+            callbacks: { label: ctx => ctx.parsed.y != null ? ` ${ctx.dataset.label}: ${ctx.parsed.y}%` : null }
+          },
+          annotation: {} // 100% 기준선은 아래 afterDraw로 처리
+        },
+        scales: {
+          x: { grid:{color:'#182a40'}, ticks:{color:'#4a6080',font:{size:10}} },
+          y: {
+            grid:{color:'#182a40'},
+            ticks:{color:'#4a6080',font:{size:9}, callback: v => v+'%'},
+            min: 0,
+          }
+        }
+      },
+      plugins: [{
+        id: 'baseline100',
+        afterDraw(chart) {
+          const { ctx, chartArea: { left, right }, scales: { y } } = chart;
+          if (!y || y.getPixelForValue(100) == null) return;
+          const yPos = y.getPixelForValue(100);
+          if (yPos < chart.chartArea.top || yPos > chart.chartArea.bottom) return;
+          ctx.save();
+          ctx.beginPath();
+          ctx.setLineDash([6, 4]);
+          ctx.strokeStyle = '#fbbf24';
+          ctx.lineWidth = 1.5;
+          ctx.moveTo(left, yPos);
+          ctx.lineTo(right, yPos);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }]
+    });
+  }
+}
+
 // ── 기록 카드 HTML 생성 ──
 function buildLogCard(r) {
   const globalIdx = records.indexOf(r);
@@ -1302,15 +1585,18 @@ function delRec(date) { records = records.filter(r => r.date !== date); persist(
 
 function clearAll() {
   if (!confirm('전체 삭제할까요?')) return;
-  records = [];
-  goals   = null;
+  records  = [];
+  goals    = null;
+  divRates = {};
   localStorage.removeItem(GKEY);
+  localStorage.removeItem(DKEY);
   persist();
   renderAll();
 }
 
 function exportData() {
-  const json = JSON.stringify(records, null, 2);
+  const payload = { records, divRates };
+  const json = JSON.stringify(payload, null, 2);
   navigator.clipboard.writeText(json)
     .then(() => toast('클립보드에 복사됐어요!'))
     .catch(() => { document.getElementById('paste-area').value = json; toast('아래 텍스트를 복사하세요'); });
@@ -1331,8 +1617,13 @@ function importText() {
   catch { toast('형식 오류', true); }
 }
 
-function doImport(arr) {
+function doImport(data) {
+  // 구버전(배열) 또는 신버전({records, divRates}) 둘 다 지원
+  const arr  = Array.isArray(data) ? data : (data.records || []);
+  const dRaw = Array.isArray(data) ? {} : (data.divRates || {});
+
   if (!Array.isArray(arr)) { toast('올바른 형식이 아니에요', true); return; }
+
   const merged = [...records];
   for (const r of arr) {
     const i = merged.findIndex(m => m.date === r.date);
@@ -1340,7 +1631,17 @@ function doImport(arr) {
   }
   merged.sort((a, b) => a.date.localeCompare(b.date));
   records = merged;
+
+  // divRates 머지
+  Object.entries(dRaw).forEach(([ticker, months]) => {
+    if (!divRates[ticker]) divRates[ticker] = {};
+    Object.entries(months).forEach(([ym, val]) => {
+      divRates[ticker][ym] = { ...divRates[ticker][ym], ...val };
+    });
+  });
+
   persist();
+  persistDivRates();
   renderAll();
   toast(arr.length + '개 기록 복원 완료!');
 }
