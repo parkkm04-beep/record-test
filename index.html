@@ -1,4 +1,4 @@
-<!DOCTYPE html> 테스터
+<!DOCTYPE html> 테스터 1
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -182,6 +182,26 @@ textarea.paste-area{width:100%;background:#112035;border:1px solid #182a40;borde
 .div-legend-item{display:flex;align-items:center;gap:4px;font-size:9px;font-family:'Space Mono',monospace;color:#e2e8f0;}
 .div-legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
 .div-legend-item.est .div-legend-dot{background:repeating-linear-gradient(45deg,#fbbf24 0px,#fbbf24 2px,transparent 2px,transparent 4px);border:1px solid #fbbf24;}
+.div-legend-item.other .div-legend-dot{background:repeating-linear-gradient(45deg,#9ca3af 0px,#9ca3af 2px,transparent 2px,transparent 4px);border:1px solid #9ca3af;}
+/* 배당 입금 시점 뱃지 */
+.div-timing-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.div-timing-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;font-size:9px;font-family:'Space Mono',monospace;font-weight:700;border:1px solid;}
+.div-timing-badge.early{background:rgba(0,229,255,.08);border-color:rgba(0,229,255,.3);color:#00e5ff;}
+.div-timing-badge.mid{background:rgba(167,139,250,.08);border-color:rgba(167,139,250,.3);color:#a78bfa;}
+.div-timing-badge.other-t{background:rgba(156,163,175,.08);border-color:rgba(156,163,175,.3);color:#9ca3af;}
+/* 스킬 코드 생성기 패널 */
+.skill-gen-panel{background:#0c1525;border:1px solid rgba(52,211,153,.25);border-radius:14px;padding:16px;margin-bottom:16px;}
+.skill-gen-title{font-size:9px;color:#34d399;font-weight:700;font-family:'Space Mono',monospace;margin-bottom:10px;letter-spacing:2px;}
+.skill-gen-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.skill-gen-item label{display:block;font-size:9px;color:#4a6080;font-family:'Space Mono',monospace;margin-bottom:4px;letter-spacing:1px;}
+.skill-gen-item input{width:100%;background:#112035;border:1px solid #182a40;border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:13px;font-family:'Space Mono',monospace;outline:none;}
+.skill-gen-item input:focus{border-color:#34d399;}
+.skill-gen-item.span2{grid-column:1/-1;}
+.skill-gen-out{background:#0a1a0f;border:1px solid rgba(52,211,153,.2);border-radius:8px;padding:10px 12px;font-size:10px;font-family:'Space Mono',monospace;color:#34d399;word-break:break-all;line-height:1.6;min-height:56px;margin-bottom:8px;white-space:pre-wrap;}
+.btn-skill-copy{width:100%;padding:11px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:'Noto Sans KR',sans-serif;background:linear-gradient(135deg,#065f46,#34d399);color:#000;}
+.skill-gen-tabs{display:flex;gap:6px;margin-bottom:12px;}
+.sgt{flex:1;padding:7px;border-radius:7px;border:1px solid #182a40;background:transparent;color:#4a6080;font-size:10px;font-weight:700;cursor:pointer;font-family:'Space Mono',monospace;}
+.sgt.active{background:#112035;border-color:#34d399;color:#34d399;}
 </style>
 </head>
 <body>
@@ -243,6 +263,61 @@ GOAL::{...}" oninput="onQSInput()"></textarea>
     <div style="flex:1;height:1px;background:#182a40"></div>
     <span style="font-size:10px;color:#4a6080;font-family:'Space Mono',monospace;">또는 직접 입력</span>
     <div style="flex:1;height:1px;background:#182a40"></div>
+  </div>
+
+  <div class="sec">🧬 스킬 코드 생성기</div>
+  <div class="skill-gen-panel">
+    <div class="skill-gen-title">DIV:: / SAVE:: 코드 직접 생성 → 복사</div>
+    <div class="skill-gen-tabs">
+      <button class="sgt active" onclick="sgTab('div')">💰 DIV:: 생성</button>
+      <button class="sgt" onclick="sgTab('save')">💾 SAVE:: 생성</button>
+    </div>
+
+    <!-- DIV:: 탭 -->
+    <div id="sg-div-panel">
+      <div class="skill-gen-grid">
+        <div class="skill-gen-item span2">
+          <label>연월 (YYYY-MM)</label>
+          <input type="month" id="sg-ym" oninput="genDivCode()">
+        </div>
+        <div class="skill-gen-item">
+          <label>PLUS 실제배당 (주당·원)</label>
+          <input type="number" id="sg-plus-actual" placeholder="158" oninput="genDivCode()">
+        </div>
+        <div class="skill-gen-item">
+          <label>PLUS 예상배당 (주당·원)</label>
+          <input type="number" id="sg-plus-est" placeholder="158" oninput="genDivCode()">
+        </div>
+        <div class="skill-gen-item">
+          <label>KODEX 실제배당 (주당·원)</label>
+          <input type="number" id="sg-kodex-actual" placeholder="미확정=빈칸" oninput="genDivCode()">
+        </div>
+        <div class="skill-gen-item">
+          <label>KODEX 예상배당 (주당·원)</label>
+          <input type="number" id="sg-kodex-est" placeholder="246" oninput="genDivCode()">
+        </div>
+      </div>
+      <div class="skill-gen-out" id="sg-div-out">← 위 값 입력 시 코드 자동 생성</div>
+      <button class="btn-skill-copy" onclick="copySkillCode('div')">📋 DIV:: 코드 복사</button>
+    </div>
+
+    <!-- SAVE:: 탭 -->
+    <div id="sg-save-panel" style="display:none">
+      <div class="skill-gen-grid">
+        <div class="skill-gen-item span2"><label>날짜</label><input type="date" id="sg-date" oninput="genSaveCode()"></div>
+        <div class="skill-gen-item"><label>PLUS 수량</label><input type="number" id="sg-psh" placeholder="260" oninput="genSaveCode()"></div>
+        <div class="skill-gen-item"><label>PLUS 주가</label><input type="number" id="sg-pp" placeholder="8520" oninput="genSaveCode()"></div>
+        <div class="skill-gen-item"><label>KODEX 수량</label><input type="number" id="sg-ksh" placeholder="47" oninput="genSaveCode()"></div>
+        <div class="skill-gen-item"><label>KODEX 주가</label><input type="number" id="sg-kp" placeholder="16810" oninput="genSaveCode()"></div>
+        <div class="skill-gen-item"><label>이달 배당합계(원)</label><input type="number" id="sg-div" placeholder="52642" oninput="genSaveCode()"></div>
+        <div class="skill-gen-item"><label>주문 건수</label><input type="number" id="sg-orders" placeholder="6" oninput="genSaveCode()"></div>
+        <div class="skill-gen-item span2"><label>총 평가액(원)</label><input type="number" id="sg-total" placeholder="5200394" oninput="genSaveCode()"></div>
+        <div class="skill-gen-item"><label>PLUS 주당배당(원)</label><input type="number" id="sg-plus-rate" placeholder="158" oninput="genSaveCode()"></div>
+        <div class="skill-gen-item"><label>KODEX 주당배당(원)</label><input type="number" id="sg-kodex-rate" placeholder="246" oninput="genSaveCode()"></div>
+      </div>
+      <div class="skill-gen-out" id="sg-save-out">← 위 값 입력 시 코드 자동 생성</div>
+      <button class="btn-skill-copy" onclick="copySkillCode('save')">📋 SAVE:: 코드 복사</button>
+    </div>
   </div>
 
   <div class="sec">수동 입력</div>
@@ -1223,9 +1298,23 @@ function tickerColor(ticker) {
   return TICKER_COLORS[ticker] || { fill:'rgba(156,163,175,.6)', border:'#9ca3af' };
 }
 
+// ── 배당 입금 시점 (PLUS=월초, KODEX=월중, 기타=+@) ──
+const DIV_TIMING = {
+  PLUS:  { label: 'PLUS (월초 입금)', cls: 'early', icon: '🌅' },
+  KODEX: { label: 'KODEX (월중 입금)', cls: 'mid',   icon: '📅' },
+};
+function divTimingLabel(ticker) {
+  return DIV_TIMING[ticker] || { label: ticker + ' (+@ 기타)', cls: 'other-t', icon: '➕' };
+}
+
+// 월초 체크인지 판단 (날짜 기준 10일 이전)
+function isEarlyMonthCheck(dateStr) {
+  const d = parseInt((dateStr || '').slice(8,10), 10);
+  return d <= 10;
+}
+
 function renderDivDetailCharts(filtered) {
   const wrap = document.getElementById('div-detail-charts');
-  // 기존 차트 정리
   Object.keys(charts).filter(k => k.startsWith('div-')).forEach(k => {
     try { if (charts[k]) charts[k].destroy(); } catch(e) {}
     charts[k] = null;
@@ -1236,7 +1325,6 @@ function renderDivDetailCharts(filtered) {
 
   if (!months.length) { wrap.innerHTML = ''; return; }
 
-  // 각 월의 마지막 레코드 기준으로 데이터 구성
   const monthRows = months.map(ym => {
     const recs = src.filter(r => r.date.startsWith(ym));
     if (!recs.length) return null;
@@ -1244,32 +1332,33 @@ function renderDivDetailCharts(filtered) {
     return { ym, rec: last };
   }).filter(Boolean);
 
-  // ── 실제 배당금 데이터 수집 ──
-  // divRates에 저장된 종목별 실적/예상값 + record의 divDetail 둘 다 활용
-  // 종목 목록: divRates에 있는 모든 종목 + 레코드 divDetail에 있는 종목
-  const allTickers = new Set(['PLUS', 'KODEX']);
-  Object.keys(divRates).forEach(t => allTickers.add(t));
+  // 종목 목록 수집 — PLUS, KODEX 먼저, 나머지는 +@ 로 묶음
+  const coreSet  = new Set(['PLUS', 'KODEX']);
+  const otherSet = new Set();
+  Object.keys(divRates).forEach(t => { if (!coreSet.has(t)) otherSet.add(t); });
   monthRows.forEach(({ rec }) => {
-    if (rec.divDetail) Object.keys(rec.divDetail).forEach(t => allTickers.add(t));
+    if (rec.divDetail) Object.keys(rec.divDetail).forEach(t => { if (!coreSet.has(t)) otherSet.add(t); });
   });
-  const tickers = [...allTickers];
+  const coreTickers  = ['PLUS', 'KODEX'];
+  const otherTickers = [...otherSet];
+  const allTickers   = [...coreTickers, ...otherTickers];
 
-  // 월별 × 종목별 데이터 매트릭스 구성
-  // actual: 실제 지급된 배당금 (원), estimated: 예상 배당금 (원)
-  // 둘 다 "해당 월 보유수량 × 주당 배당금" 기준
+  // 매트릭스 구성
   const matrix = monthRows.map(({ ym, rec }) => {
-    const row = { ym, label: ym.slice(5) + '월', actual: {}, estimated: {} };
+    const row = { ym, label: ym.slice(5) + '월', actual: {}, estimated: {}, checkDate: rec.date };
 
-    tickers.forEach(ticker => {
-      const sh = ticker === 'PLUS' ? rec.plusSh : ticker === 'KODEX' ? rec.kodexSh : (rec.divDetail?.[ticker]?.sh || 0);
+    allTickers.forEach(ticker => {
+      const sh = ticker === 'PLUS' ? rec.plusSh
+               : ticker === 'KODEX' ? rec.kodexSh
+               : (rec.divDetail?.[ticker]?.sh || 0);
 
-      // 실제 배당금: divRates[ticker][ym].actual 또는 rec.divDetail[ticker].actual
+      // 실제 배당금
       let actualRate = null;
       if (divRates[ticker]?.[ym]?.actual != null) actualRate = divRates[ticker][ym].actual;
       else if (rec.divDetail?.[ticker]?.rate != null) actualRate = rec.divDetail[ticker].rate;
       if (actualRate != null && sh > 0) row.actual[ticker] = Math.round(sh * actualRate);
 
-      // 예상 배당금: divRates[ticker][ym].estimated 또는 fallback(PLUS=156, KODEX=244)
+      // 예상 배당금 (최신 조회값 우선, 없으면 fallback)
       let estRate = null;
       if (divRates[ticker]?.[ym]?.estimated != null) estRate = divRates[ticker][ym].estimated;
       else if (ticker === 'PLUS')  estRate = 156;
@@ -1277,34 +1366,76 @@ function renderDivDetailCharts(filtered) {
       if (estRate != null && sh > 0) row.estimated[ticker] = Math.round(sh * estRate);
     });
 
+    // +@ 합산 (기타 종목)
+    row.actual['기타+@']    = otherTickers.reduce((s,t) => s + (row.actual[t]    || 0), 0) || null;
+    row.estimated['기타+@'] = otherTickers.reduce((s,t) => s + (row.estimated[t] || 0), 0) || null;
+    if (!row.actual['기타+@'])    delete row.actual['기타+@'];
+    if (!row.estimated['기타+@']) delete row.estimated['기타+@'];
+
     return row;
   });
 
   wrap.innerHTML = '';
 
-  // ── 차트 1: 종목별 실제 배당금 누적 막대 + 예상 합계 선 ──
-  const c1 = document.createElement('div');
-  c1.className = 'div-chart-box';
+  // ── 배당 입금 시점 안내 뱃지 ──
+  const timingDiv = document.createElement('div');
+  timingDiv.className = 'div-chart-box';
+  const otherBadge = otherTickers.length
+    ? `<div class="div-timing-badge other-t">➕ 기타 종목 → +@ 합산 표시</div>`
+    : '';
+  timingDiv.innerHTML = `
+    <div class="div-chart-title">📆 배당 입금 시점 안내</div>
+    <div class="div-chart-sub">월초 체크 기준으로는 PLUS만 확정 · KODEX는 월중 이후 확정</div>
+    <div class="div-timing-row">
+      <div class="div-timing-badge early">🌅 PLUS — 매월 초순 입금 (월초 체크 시 확정)</div>
+      <div class="div-timing-badge mid">📅 KODEX — 매월 중순 입금 (월중 이후 확정)</div>
+      ${otherBadge}
+    </div>
+    <div style="font-size:9px;color:#4a6080;font-family:'Space Mono',monospace;line-height:1.7;">
+      ⚠️ 월초 체크 시 KODEX 배당은 "미확정" → DIV:: actual 키 생략<br>
+      📈 배당금 증가 → KODEX 입금 확인 신호 · 기타 종목은 +@ 막대로 합산
+    </div>`;
+  wrap.appendChild(timingDiv);
+
+  // ── 차트 표시 종목: PLUS, KODEX, 기타+@ ──
+  const chartTickers = ['PLUS', 'KODEX', ...(otherTickers.length ? ['기타+@'] : [])];
+  const activeTickers = chartTickers.filter(t => matrix.some(m => m.actual[t] || m.estimated[t]));
 
   // 범례 HTML
-  const legendItems = tickers.filter(t => matrix.some(m => m.actual[t] || m.estimated[t]));
+  const legendItems = activeTickers;
   const legendHtml = legendItems.map(t => {
+    if (t === '기타+@') {
+      return `<div class="div-legend-item other"><div class="div-legend-dot"></div>기타 (+@)</div>`;
+    }
     const col = tickerColor(t);
-    return `<div class="div-legend-item"><div class="div-legend-dot" style="background:${col.fill};border:1px solid ${col.border};"></div>${t}</div>`;
+    const timing = divTimingLabel(t);
+    return `<div class="div-legend-item"><div class="div-legend-dot" style="background:${col.fill};border:1px solid ${col.border};"></div>${timing.icon} ${t}</div>`;
   }).join('') + `<div class="div-legend-item est"><div class="div-legend-dot"></div>예상 합계</div>`;
 
+  const c1 = document.createElement('div');
+  c1.className = 'div-chart-box';
   c1.innerHTML = `
     <div class="div-chart-title">💰 종목별 월 배당금 실적 vs 예상</div>
-    <div class="div-chart-sub">실제 지급 배당금 (막대) · 예상 배당금 합계 (점선)</div>
+    <div class="div-chart-sub">실제 지급 배당금 (막대 · 누적) · 예상 배당금 합계 (점선) · 기타 종목은 +@ 합산</div>
     <div class="div-legend">${legendHtml}</div>
     <canvas id="div-bar-chart" height="160"></canvas>`;
   wrap.appendChild(c1);
 
-  const activeTickers = legendItems;
   const labels = matrix.map(m => m.label);
 
-  // 누적 막대 datasets (실제)
   const barDatasets = activeTickers.map(ticker => {
+    if (ticker === '기타+@') {
+      return {
+        label: '기타+@',
+        data: matrix.map(m => m.actual['기타+@'] != null ? +(m.actual['기타+@']/10000).toFixed(2) : null),
+        backgroundColor: 'rgba(156,163,175,.55)',
+        borderColor: '#9ca3af',
+        borderWidth: 1,
+        borderRadius: 3,
+        stack: 'actual',
+        borderDash: [3,3],
+      };
+    }
     const col = tickerColor(ticker);
     return {
       label: ticker,
@@ -1317,7 +1448,6 @@ function renderDivDetailCharts(filtered) {
     };
   });
 
-  // 예상 합계 선 dataset
   const estLineDataset = {
     label: '예상 합계',
     data: matrix.map(m => {
@@ -1352,11 +1482,12 @@ function renderDivDetailCharts(filtered) {
             label: ctx => {
               if (ctx.parsed.y == null) return null;
               const isEst = ctx.dataset.label === '예상 합계';
-              const prefix = isEst ? '📍예상' : ctx.dataset.label;
-              return ` ${prefix}: ${ctx.parsed.y.toFixed(2)}만원`;
+              if (isEst) return ` 📍예상: ${ctx.parsed.y.toFixed(2)}만원`;
+              const lbl = ctx.dataset.label === '기타+@' ? '기타(+@)' : ctx.dataset.label;
+              const timing = ctx.dataset.label === 'PLUS' ? ' [월초]' : ctx.dataset.label === 'KODEX' ? ' [월중]' : '';
+              return ` ${lbl}${timing}: ${ctx.parsed.y.toFixed(2)}만원`;
             },
             afterBody: ctx => {
-              // 실제 합계 표시
               const actualSum = ctx.filter(c => c.dataset.label !== '예상 합계')
                 .reduce((s, c) => s + (c.parsed.y || 0), 0);
               if (actualSum > 0) return [`─`, ` 실제 합계: ${actualSum.toFixed(2)}만원`];
@@ -1372,21 +1503,24 @@ function renderDivDetailCharts(filtered) {
     }
   });
 
-  // ── 차트 2: 실적 달성률 (실제÷예상 %) ──
-  const hasAnyActual = matrix.some(m => activeTickers.some(t => m.actual[t] != null));
+  // ── 차트 2: 달성률 (PLUS/KODEX만) ──
+  const corePctTickers = ['PLUS','KODEX'].filter(t => matrix.some(m => m.actual[t] != null));
+  const hasAnyActual   = corePctTickers.length > 0;
+
   if (hasAnyActual) {
     const c2 = document.createElement('div');
     c2.className = 'div-chart-box';
     c2.innerHTML = `
       <div class="div-chart-title">📊 종목별 배당금 달성률 (%)</div>
-      <div class="div-chart-sub">실제 ÷ 예상 × 100% · 100%선 = 예상과 동일</div>
+      <div class="div-chart-sub">실제 ÷ 예상 × 100% · 100%선 = 예상과 동일 · 월초 체크 시 PLUS만 표시될 수 있음</div>
       <canvas id="div-pct-chart" height="140"></canvas>`;
     wrap.appendChild(c2);
 
-    const pctDatasets = activeTickers.map(ticker => {
+    const pctDatasets = corePctTickers.map(ticker => {
       const col = tickerColor(ticker);
+      const timing = ticker === 'PLUS' ? ' [월초]' : ' [월중]';
       return {
-        label: ticker,
+        label: ticker + timing,
         data: matrix.map(m => {
           const act = m.actual[ticker];
           const est = m.estimated[ticker];
@@ -1411,8 +1545,7 @@ function renderDivDetailCharts(filtered) {
           tooltip: {
             backgroundColor: '#0c1525', titleColor:'#e2e8f0', bodyColor:'#e2e8f0',
             callbacks: { label: ctx => ctx.parsed.y != null ? ` ${ctx.dataset.label}: ${ctx.parsed.y}%` : null }
-          },
-          annotation: {} // 100% 기준선은 아래 afterDraw로 처리
+          }
         },
         scales: {
           x: { grid:{color:'#182a40'}, ticks:{color:'#4a6080',font:{size:10}} },
@@ -1662,6 +1795,72 @@ function toast(msg, isErr = false) {
   t.style.background = isErr ? '#fb7185' : '#fb923c';
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+// ── 스킬 코드 생성기 ──
+function sgTab(t) {
+  document.getElementById('sg-div-panel').style.display  = t === 'div'  ? 'block' : 'none';
+  document.getElementById('sg-save-panel').style.display = t === 'save' ? 'block' : 'none';
+  document.querySelectorAll('.sgt').forEach((b,i) => b.classList.toggle('active', ['div','save'][i] === t));
+}
+
+function genDivCode() {
+  const ym   = document.getElementById('sg-ym').value;
+  const pa   = document.getElementById('sg-plus-actual').value;
+  const pe   = document.getElementById('sg-plus-est').value;
+  const ka   = document.getElementById('sg-kodex-actual').value;
+  const ke   = document.getElementById('sg-kodex-est').value;
+  const out  = document.getElementById('sg-div-out');
+
+  if (!ym) { out.textContent = '← 연월을 먼저 입력하세요'; return; }
+
+  const rates = {};
+  if (pa) rates['PLUS']  = { actual: parseInt(pa,10) };
+  if (ka) rates['KODEX'] = { actual: parseInt(ka,10) };
+
+  const est = {};
+  if (pe) est['PLUS']  = parseInt(pe,10);
+  if (ke) est['KODEX'] = parseInt(ke,10);
+
+  const obj = { ym, rates, estimated: est };
+  out.textContent = 'DIV::' + JSON.stringify(obj);
+}
+
+function genSaveCode() {
+  const date   = document.getElementById('sg-date').value;
+  const psh    = document.getElementById('sg-psh').value;
+  const pp     = document.getElementById('sg-pp').value;
+  const ksh    = document.getElementById('sg-ksh').value;
+  const kp     = document.getElementById('sg-kp').value;
+  const div    = document.getElementById('sg-div').value;
+  const orders = document.getElementById('sg-orders').value;
+  const total  = document.getElementById('sg-total').value;
+  const pr     = document.getElementById('sg-plus-rate').value;
+  const kr     = document.getElementById('sg-kodex-rate').value;
+  const out    = document.getElementById('sg-save-out');
+
+  if (!date || !psh) { out.textContent = '← 날짜와 PLUS 수량은 필수입니다'; return; }
+
+  const obj = {
+    date, total: +total||0,
+    plusSh: +psh||0, plusP: +pp||0,
+    kodexSh: +ksh||0, kodexP: +kp||0,
+    div: +div||0, orders: +orders||0,
+    divDetail: {
+      ...(pr ? { PLUS: { rate: +pr } } : {}),
+      ...(kr ? { KODEX: { rate: +kr } } : {}),
+    }
+  };
+  out.textContent = 'SAVE::' + JSON.stringify(obj);
+}
+
+function copySkillCode(type) {
+  const el  = document.getElementById('sg-' + type + '-out');
+  const txt = el.textContent.trim();
+  if (!txt || txt.startsWith('←')) { toast('먼저 값을 입력하세요', true); return; }
+  navigator.clipboard.writeText(txt)
+    .then(() => toast('코드 복사 완료! 앱 클립보드 버튼으로 저장하세요 ✅'))
+    .catch(() => { el.select?.(); toast('수동으로 복사해주세요', true); });
 }
 
 // ── 초기화 ──
